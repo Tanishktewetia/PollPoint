@@ -9,6 +9,8 @@ Phase 1 provides email/password signup, email confirmation, login/logout, protec
 dashboard/admin shells, and database migrations with RLS. Survey participation,
 history/balance, and admin survey management are subsequent approved phases.
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the approved model and phase gates.
+See [Phase 1 verification](./docs/PHASE_1_VERIFICATION.md) for completed checks and
+the remaining launch items.
 
 ## Run locally
 

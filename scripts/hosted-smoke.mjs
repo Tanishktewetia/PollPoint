@@ -18,9 +18,13 @@ let userId;
 let browser;
 try {
   // generateLink creates the signup identity and confirmation token WITHOUT mail.
-  const { data, error } = await admin.auth.admin.generateLink({ type: "signup", email, password });
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "signup", email, password, options: { redirectTo: `${origin}/auth/confirm` },
+  });
   if (error) throw new Error(`Test signup setup failed (${error.code ?? error.status}).`);
   userId = data.user.id;
+  const confirmationRedirect = new URL(data.properties.action_link).searchParams.get("redirect_to");
+  assert.equal(confirmationRedirect, `${origin}/auth/confirm`, "Supabase must allow the application's confirmation callback URL");
   const { data: profile, error: profileError } = await admin.from("profiles").select("id").eq("id", userId).single();
   assert.ifError(profileError);
   assert.equal(profile.id, userId, "Auth signup must provision a profile");

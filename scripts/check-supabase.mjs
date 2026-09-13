@@ -8,14 +8,15 @@ const settings = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: ano
 if (!settings.ok) throw new Error(`Supabase Auth settings unavailable (${settings.status})`);
 const auth = await settings.json();
 console.log(`Supabase Auth reachable. Email provider: ${auth.external?.email === true}. Email confirmation: ${auth.mailer_autoconfirm === false}.`);
+if (auth.external?.email !== true || auth.mailer_autoconfirm !== false) process.exitCode = 1;
 const { error } = await client.from("profiles").select("id").limit(0);
 console.log(`Anonymous profile read: ${error ? `denied (${error.code})` : "allowed — review grants"}.`);
 if (error?.code === "PGRST205" || error?.code === "42P01") {
   console.log("PollPoint schema is not deployed to this project yet.");
   process.exitCode = 2;
-} else if (!error) {
+} else if (error?.code !== "42501") {
   process.exitCode = 1;
 }
 const { error: rpcError } = await client.rpc("admin_session");
 console.log(`Anonymous admin RPC: ${rpcError ? `denied (${rpcError.code})` : "allowed — review grants"}.`);
-if (!rpcError) process.exitCode = 1;
+if (rpcError?.code !== "42501") process.exitCode = 1;

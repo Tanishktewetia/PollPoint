@@ -1,6 +1,6 @@
 # PollPoint Architecture
 
-Status: Architecture approved on 2026-09-13. Phase 1 implementation is in progress.
+Status: Architecture approved and Phase 1 implemented on 2026-09-13.
 Product decisions in section 1 are confirmed. Each later phase still requires its
 own explicit approval.
 
@@ -357,8 +357,8 @@ commits, command output, fixtures, or browser bundles.
 
 The environment-name inspection found `SUPABASE_ANON_KEY` and
 `SUPABASE_SERVICE_ROLE_KEY`. It did not find a standard
-`NEXT_PUBLIC_SUPABASE_URL` assignment. Phase 1 will verify configuration without
-printing secrets and use the project URL supplied in the brief:
+`NEXT_PUBLIC_SUPABASE_URL` assignment. Phase 1 verified configuration without
+printing secrets and used the project URL supplied in the brief:
 `https://skquddbddxbdsvwkwbza.supabase.co`.
 
 Phase 1 update: the supplied URL was added to the ignored local `.env`; both keys
@@ -382,8 +382,10 @@ the integration actually applies production migrations and which status checks
 prove success; a repository link alone is not proof that DDL was applied.
 
 The owner subsequently confirmed production migration deployment from `main`.
-Phase 1 will push tested migrations through that integration and verify the remote
-check plus actual schema access before declaring hosted wiring complete.
+Phase 1 pushed both tested migrations through that integration. The Supabase
+check completed successfully and hosted tests verified the schema, profile trigger,
+RLS, Auth confirmation, login/logout, and non-admin denial. The owner's confirmed
+Auth UUID was provisioned as the first admin using the restricted bootstrap RPC.
 
 Phase 1 uses Next.js 16 with `src/proxy.ts`. Database types are generated from the
 actual migrated PostgreSQL catalog using the embedded PGlite test database, so
