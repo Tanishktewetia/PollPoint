@@ -22,8 +22,12 @@
 ## Production status and remaining evidence
 
 The existing `pollpoint` Vercel project serves `https://pollpoint.vercel.app`.
-An unauthenticated GET returned HTTP 500. The owner is supplying the matching
-Runtime Logs error and stack trace; no cause is asserted without that evidence.
+An unauthenticated GET returned HTTP 500. Runtime Logs from the original and a fresh
+Production deployment confirm `getSupabaseConfig()` fails validation in the request
+proxy. Screenshots confirm the expected variable names and Production scopes, but
+masked values cannot establish which value fails. Validation now reports the exact
+variable and missing/empty/invalid-URL reason without logging any configuration value.
+The next deployment's runtime error will distinguish these cases.
 No replacement Vercel project or schema migration was created.
 
 The four reported Vercel keys omit an additional production Auth requirement:
@@ -37,6 +41,7 @@ Still required before declaring Phase 5 complete:
 - Confirm Vercel environment changes and Supabase Auth URLs are applied.
 - Verify production confirmation/login/logout without sending email or earning points.
 - Inspect deployed import duration/packaging and verify production import behavior.
-- Verify the pushed commit's GitHub CI, Supabase integration, and Vercel status.
+- Styling commit `615173c` passed GitHub CI, Supabase integration, and Vercel build;
+  runtime HTTP 500 persisted. Verify those checks again for the diagnostic update.
 
 The historical admin award remains 100 points; no cleanup was performed.

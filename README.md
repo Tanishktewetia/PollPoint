@@ -16,8 +16,9 @@ Document imports generate `needs_review` drafts in that same builder and approva
 
 See [architecture](./ARCHITECTURE.md) and [Phase 5 verification](./docs/PHASE_5_VERIFICATION.md).
 Production is configured at [pollpoint.vercel.app](https://pollpoint.vercel.app).
-Its initial HTTP 500 remains under investigation pending the actual runtime log;
-local QA passing does not establish production readiness.
+Its HTTP 500 is traced to Supabase environment validation in the request proxy;
+the exact failing variable is being diagnosed. Local QA passing does not establish
+production readiness.
 
 ## Local development
 
