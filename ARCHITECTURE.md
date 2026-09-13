@@ -1,8 +1,8 @@
 # PollPoint Architecture
 
-Status: Phase 2 completed and deployed on 2026-09-13; awaiting Phase 3 approval.
-Product decisions in section 1 are confirmed. Each later phase still requires its
-own explicit approval.
+Status: Architecture revision awaiting approval. Phase 3 is on hold. The confirmed
+changes below supersede earlier admin-participation and authoring decisions;
+implementation must wait for approval of this revision.
 
 ## 1. Product decisions and scope
 
@@ -10,7 +10,7 @@ The owner confirmed the following product decisions on 2026-09-13:
 
 | Decision | Confirmed behavior | Schema consequence |
 | --- | --- | --- |
-| Push to all | Target registered users at push time. Later signups require another push. | Materialized per-user assignments; no persistent audience subscription. |
+| Push to all | Target registered non-admin users at push time. Later signups require another push. | Materialized per-user assignments; exclude admin memberships from every targeting path. |
 | Completion and revisions | One completion and fixed reward per user per survey. Freeze questions and reward on publication; copy to a new survey for revisions. | Unique user/survey submission and assignment; immutable published question definitions and reward. |
 | Demographics | Required first section on every completion, with a “Prefer not to say” answer; store per completion. | Demographic questions and answers belong to the survey, not the profile. Income labels specify currency and period. |
 
@@ -23,13 +23,20 @@ Other implementation choices:
   submission. Failed attention checks never reduce, delay, or block the reward.
 - Points are an earnings ledger. Redemption, cash conversion, transfers, and manual
   adjustments are outside the brief and outside the initial schema.
-- Survey states are `draft`, `published`, and `archived`. First push publishes a
-  valid draft atomically. Published surveys may be pushed again to additional users.
+- Survey states are `needs_review`, `draft`, `published`, and `archived`.
+  Imported drafts start in `needs_review`. Manual and generated surveys use the
+  same builder, approval action, and push action. Approval records the exact
+  definition version; edits invalidate approval. First push atomically publishes
+  an approved draft. Published surveys may be pushed again to additional users.
 - Archiving removes an unfinished survey from availability. Completed history and
   earnings remain accessible. No survey hard-delete or assignment revocation UI.
 - The initial release has no expiry, branching, quotas, partial credit, timed
   surveys, or persisted answer drafts. A failed network submission can be retried.
-- Admins retain ordinary user capabilities; “all users” includes their profiles.
+- Admins cannot take surveys or earn points. Admin sign-in routes to `/admin`;
+  user dashboard/survey/history routes redirect admins there. Admin previews are
+  read-only and never create assignments, submissions, or credits.
+- Admins have a read-only roster of non-admin users, including current email,
+  display name, and total earned points. Email comes from Supabase Auth.
 - Profile display names are optional. Survey answers are identifiable to authorized
   admins, not anonymous. Explain this before survey submission.
 - Demographic option sets must be explicit survey configuration; do not infer a
@@ -77,6 +84,7 @@ Only the profile provisioning trigger needs to reference `auth.users` directly.
 | `public.profiles` | `id` PK/FK to `auth.users.id`, `display_name`, `created_at` | One profile per identity, created by a signup trigger. No client-writable role or balance. |
 | `private.admin_memberships` | `user_id` PK/FK to profiles, `created_at`, nullable `granted_by` | Authoritative admin allowlist outside the exposed API schema. |
 | `public.surveys` | `id`, `title`, `description`, `reward_points integer CHECK >= 0`, `status`, `definition_version integer`, `created_by`, `created_at`, `updated_at`, `published_at`, `archived_at` | Survey metadata, immutable definition and reward after publication. |
+| Survey additions | `status` also accepts `needs_review`; `authoring_source` (`manual`/`gemini`, default `manual`); nullable `approved_by` FK to profiles, `approved_at`, `approved_definition_version` | Approval belongs to the current definition version; generated drafts use the existing survey/question tables. |
 | `public.survey_questions` | `id`, `survey_id`, `position`, `section`, `field_key`, `type`, `presentation`, `prompt`, `required`, `config jsonb`, unique `(survey_id, position)`, unique `(survey_id, field_key)`, unique `(survey_id, id)` | Ordered public question definitions; no attention-check answer keys. |
 | `private.question_checks` | `question_id` PK/FK, `rule jsonb`, `rule_version` | Attention-check answer keys and grading rules visible only through authorized admin functions. |
 | `public.survey_pushes` | `id`, `survey_id`, `audience` (`all`/`selected`), `created_by`, `created_at`, unique `request_id`, `request_fingerprint`, `targeted_count`, `new_assignment_count` | Audit record of each successful push, including repeated pushes. Fingerprint binds retries to the original caller and canonical request arguments. |
@@ -86,6 +94,7 @@ Only the profile provisioning trigger needs to reference `auth.users` directly.
 | `public.submission_answers` | `submission_id`, `survey_id`, `question_id`, `answer jsonb`, PK `(submission_id, question_id)` | Answers with composite FKs to the submission's survey and that survey's questions. |
 | `private.response_flags` | `submission_id`, `question_id`, `rule_version`, `reason_code`, `created_at`, unique `(submission_id, question_id)` | Failed attention checks stored for admin review, separate from user-readable responses. |
 | `public.points_ledger` | `id`, `user_id`, `submission_id` unique, `amount integer CHECK >= 0`, `created_at`; composite FK `(submission_id, user_id)` | Exactly one immutable award per completion. Amount comes from the stored survey reward. |
+| `private.survey_imports` | `id`, `created_by` FK, unique `(created_by, request_id)`, `content_hash`, filename/MIME/byte count, `status` (`processing`/`ready`/`failed`), nullable unique `survey_id` FK, model/prompt versions, safe `error_code`, timestamps, `lease_expires_at` | Import provenance and idempotency; raw files, extracted text, prompts, and raw model responses are not persisted. |
 
 `private` is not an exposed PostgREST schema. Deny direct access to private tables
 to `anon` and `authenticated`; enable RLS there as defense in depth. Privileged
@@ -108,6 +117,30 @@ Additional constraints and indexes:
   references. Never copy a role from user-editable signup metadata.
 - Account deletion and demographic retention need a separately approved policy
   before adding deletion/anonymization features. Do not imply automatic erasure.
+
+Revision migration requirements:
+
+- Add the survey approval/provenance fields, extend lifecycle checks, and permit
+  question/check edits in both `draft` and `needs_review`. Publication requires
+  `status = draft` and approval of the current definition version. All edits to
+  questions, private check rules, title, description, or reward increment that
+  version and clear approval in the same transaction. Published data stays frozen.
+- Apply new migrations only. Invalidate admin eligibility for existing assignments,
+  including the Phase 2 example, through route/RPC guards; keep immutable audit
+  records. Retire `private.install_example_survey` as an admin-assignment mechanism;
+  examples for participation tests use isolated non-admin fixtures instead.
+- Inspect any pre-revision admin awards before rollout. Existing historical rows
+  remain immutable; the new policy prohibits further participation/earnings and
+  hides participant views for admins. Retroactive deletion or reversal of existing
+  ledger entries is not part of this revision.
+- Serialize membership changes with assignment creation, submission, and credit
+  creation using a consistent per-profile lock, then recheck eligibility. Database
+  guards on assignments/submissions/ledger inserts reject admin recipients even
+  through privileged maintenance paths. Promotion immediately disables existing
+  assignments; it never permits an award racing after promotion.
+- Enable RLS on `private.survey_imports`, deny direct API/table grants, and index
+  creator/time and processing lease expiry. Expose only authorized admin RPCs.
+  Import attempts do not add a second question schema or a second approval table.
 
 ## 4. Question engine and answer contracts
 
@@ -173,6 +206,22 @@ invalid option IDs, duplicate selections, forbidden exclusive combinations,
 missing required answers, out-of-range numbers, excessive text, and oversized
 payloads. Clients never submit accepted points, user IDs, or quality judgments.
 
+### Required-answer navigation
+
+Use question-by-question navigation, with demographics remaining the first section.
+Before advancing, run the existing client answer validator for the current question.
+Disable Next while a required answer is missing or invalid; the navigation handler
+also guards keyboard/Enter and alternate navigation. A valid decline satisfies a
+demographic requirement. Optional questions can be skipped; supplied optional
+answers must be valid. Attention checks validate answer shape, never correctness,
+on the client. Their expected answers remain private.
+
+Back remains available. Edits revalidate immediately; forward jumps/review cannot
+bypass an earlier invalid required answer. Submit is disabled and guarded until
+all required answers and any supplied optional answers are valid. Associate inline
+errors with the field and focus the first invalid question. Server and database
+validation remain mandatory. This changes navigation state, not stored answers.
+
 The Phase 2 example survey will demonstrate demographics, social-media usage,
 products/accessories owned, shopping frequency, an opinion question, free text,
 dropdowns, visible options, and one attention check. Its setup uses the same
@@ -182,10 +231,11 @@ validated authoring logic, not an alternate permissive data path.
 
 ### Submit a survey
 
-1. Server action verifies the Supabase session, bounds payload size, validates shape,
+1. Server action verifies a non-admin Supabase session, bounds payload size, validates shape,
    and invokes `submit_survey(assignment_id, answers)` with the user's JWT.
-2. The SQL function obtains `auth.uid()`, locks the owned assignment, and rejects an
-   unassigned caller. It never accepts the caller's identity as an argument.
+2. The SQL function obtains `auth.uid()`, locks/rechecks profile eligibility, then
+   locks the owned assignment. It rejects admins and unassigned callers before
+   receipt replay or writes. It never accepts caller identity as an argument.
 3. If already completed, return the existing receipt without another credit.
    Otherwise lock the survey row, confirm it is published, and read its frozen
    questions and reward. Archival and submission serialize on that row.
@@ -202,14 +252,19 @@ across functions to avoid deadlocks. Attention failure does not trigger rollback
 
 1. Server actions verify the caller and check database-backed admin membership.
    SQL RPCs repeat the admin check, so direct API requests cannot bypass it.
-2. Draft-save RPC validates and writes the entire question definition, including
+2. The shared draft-save RPC handles `draft` and `needs_review`, validating and
+   writing the entire question definition, including
    private checks, transactionally. Concurrent edits use the definition version
-   as an optimistic lock; stale saves return a conflict.
+   as an optimistic lock; stale saves return a conflict. The shared Approve action
+   validates the complete definition, records approver/time/version, and transitions
+   `needs_review` to `draft` (manual drafts remain `draft`). Approval does not assign
+   users. Both sources use this action; editing either source clears approval.
 3. Push accepts survey ID, audience, optional selected user IDs, expected definition
    version, and a retry-stable request ID. Lock the survey and validate publication
-   invariants; refuse archived surveys or stale draft versions.
-4. For `all`, materialize profiles visible in the push transaction's target query.
-   For `selected`, deduplicate and verify every profile ID; reject invalid targets.
+   invariants; refuse `needs_review`, unapproved/stale drafts, or archived surveys.
+4. For `all`, materialize eligible non-admin profiles at push time.
+   For `selected`, deduplicate and verify every profile ID; reject missing IDs and
+   admin recipients. Recheck eligibility under the shared profile-lock convention.
    Record the push and recipient snapshot, then insert missing assignments using
    the unique survey/user constraint. Publish a draft in the same transaction.
 5. Return targeted, newly assigned, and already assigned counts. An empty audience
@@ -222,6 +277,63 @@ before broad distribution; persistent background batching, if needed, requires
 an explicit later architecture change. A newly targeted user sees the survey on
 their next dashboard fetch/refresh; realtime delivery and notifications are not
 required by this brief.
+
+### Admin user roster
+
+`admin_user_roster` is a bounded, paginated, read-only `SECURITY DEFINER` RPC with
+an explicit database admin check and empty search path. Join `public.profiles` to
+`auth.users` for the current email and aggregate `public.points_ledger` by user;
+exclude admin memberships. Return only user ID, nullable display name/email,
+created timestamp for stable pagination, and total earned points (zero when no
+ledger rows exist; bigint sum serialized as a decimal string to preserve precision).
+No email duplication/synchronization column or mutable balance table is needed.
+Do not grant clients access to `auth.users` or expose Auth metadata. The roster
+has no edit, role-change, balance-adjustment, or export action in this scope.
+
+### LLM-assisted survey authoring
+
+1. An admin uploads a `.docx`, `.pdf`, or `.txt` file and supplies the survey's fixed
+   reward. Authenticate and verify current admin membership before accepting work.
+   Default limits: one file, 4 MiB upload, 100 PDF pages, 20 MiB expanded DOCX, and
+   50,000 extracted characters. Check content signature as well as extension/MIME;
+   reject malformed, encrypted, empty, or image-only documents with a clear error.
+   OCR is outside this initial feature. Stream-bound multipart parsing and bounded
+   extraction prevent oversized/ZIP-bomb inputs; do not fetch embedded external URLs.
+2. Extract text in a Node server module (DOCX paragraph/table extraction, PDF text
+   extraction, UTF-8 TXT). Parse in memory; never run document macros. Record import
+   metadata and an expiring processing lease. Do not log or retain document text.
+3. Call Gemini server-side with `GEMINI_API_KEY`; configure the supported model via
+   server settings and record model/prompt versions. The upload UI explains that
+   the extracted requirement text is sent to Gemini. Delimit document text as
+   untrusted source material. The model has no tools, DB access, or authority to
+   change roles, rewards, assignments, approval state, or published content.
+4. Request structured JSON conforming to the existing internal authoring contract:
+   title/description and the existing question `type`, `presentation`, `field_key`,
+   `prompt`, `required`, and versioned `config`; private checks use the existing
+   check-rule contract. Server code supplies database IDs and the mandatory
+   demographic section from the same templates used by manual authoring. No
+   SurveyJS, second renderer, or parallel model-specific question format is added.
+   The admin-entered reward is authoritative, never a model-generated amount.
+5. Treat output as untrusted: parse and validate it with the same strict schemas
+   and database definition validator used by manual saves, including allowed types,
+   options, length limits, demographics, and private check separation. Never persist
+   malformed output as a publishable survey or execute generated code/SQL. Fail
+   the import with a safe error rather than silently inventing missing requirements.
+6. In one authorized transaction, create the survey in `needs_review`, its question
+   rows/private checks, and the import-to-survey link; mark the import `ready`.
+   Recheck admin membership at persistence. `ready` means generation succeeded,
+   not approval. No assignments or points are created. Open the normal survey
+   builder for editing, followed by the same Approve and Push actions as manual work.
+
+Use bounded request execution on Vercel: enforce a Gemini timeout and at most one
+bounded retry within the deployment's configured duration. Confirm that duration
+before enabling the feature; no unawaited work after a response. Record a safe
+failure on provider/validation errors. An expired lease makes an interrupted import
+retryable. Retrying uses the same request ID and content hash, with re-upload because
+raw content is not retained; a completed retry returns the original draft. Reject
+conflicting request-ID reuse and prevent duplicate drafts or overlapping generation
+for one lease. Apply per-admin rate limits and a global generation concurrency cap
+in the database. Only metadata is durable; this is not a background job service.
 
 ### Admin identity and bootstrap
 
@@ -242,13 +354,21 @@ Supabase Auth handles public signup/login. Apply explicit grants as well as RLS.
 | Data | Regular authenticated user | Admin |
 | --- | --- | --- |
 | Profiles | Read own; update only display name through a narrow RPC | Read profiles for targeting; no arbitrary role fields |
-| Surveys/questions | Read assigned published surveys, plus own completed survey definitions after archival | Read all; mutate drafts through admin RPCs |
+| Surveys/questions | Read assigned published surveys, plus own completed survey definitions after archival | Read/manage authoring definitions, including `needs_review`; no participant flow |
 | Assignments | Read own | Read all; create only through push RPC |
 | Pushes/targets | No direct access | Read audit data; writes only through push RPC |
-| Submissions/answers | Read own; create only through submit RPC | Read all; cannot rewrite accepted answers |
-| Points ledger | Read own; no direct writes | Read all; no general ledger editing API |
+| Submissions/answers | Read own; create only through non-admin submit RPC | Read all for review; cannot submit or rewrite answers |
+| Points ledger | Read own; no direct writes | Read for reporting; cannot earn or edit points |
 | Admin memberships | No direct access | Boolean membership helper only; bootstrap outside ordinary app |
 | Check rules/response flags | No access | Authorized admin read/write functions as appropriate; published rules stay immutable |
+| Roster/email/totals | No roster or other-user email access | Read-only roster RPC; no direct Auth-table grants |
+| Import metadata | No access | Admin-only RPCs; processing/retry restricted to initiating admin, linked surveys use normal admin permissions |
+
+Participant RPCs `available_surveys`, `assigned_survey`, and `submit_survey` deny
+admins, regardless of old assignments. Keep separate admin authoring/review reads;
+RLS's legitimate admin reporting access must not imply participation permission.
+Eligibility guards also apply to future balance/history endpoints and both targeting
+modes. `needs_review` content is admin-only and can never appear in a user's feed.
 
 Survey visibility uses `EXISTS` on the caller's assignment and survey lifecycle;
 question visibility follows that survey predicate. A user's submission/answer
@@ -275,23 +395,27 @@ Route groups below organize layouts without changing URLs.
 
 | URL | Audience | Purpose |
 | --- | --- | --- |
-| `/` | Public | Redirect authenticated users to dashboard, others to login |
+| `/` | Public | Route admins to `/admin`, non-admin users to dashboard, others to login |
 | `/signup` | Public | Email/password signup and confirmation instructions |
 | `/login` | Public | Email/password login, safe internal redirect destination |
 | `/auth/confirm` | Auth callback | Validate supported confirmation token/flow and redirect safely |
-| `/dashboard` | Authenticated | Available assigned surveys, reward summary, take-survey CTA |
-| `/surveys/[assignmentId]` | Owning user | Mandatory demographic section followed by survey questions |
-| `/surveys/[assignmentId]/complete` | Owning user | Receipt read from the stored submission |
-| `/history` | Authenticated | Paginated completion history plus total balance |
+| `/dashboard` | Non-admin user | Available assigned surveys; admins redirect to `/admin` |
+| `/surveys/[assignmentId]` | Owning non-admin user | Required-answer-gated question navigation; admins redirect to `/admin` |
+| `/surveys/[assignmentId]/complete` | Owning non-admin user | Receipt read from the stored submission |
+| `/history` | Non-admin user | Paginated completion history plus total balance |
 | `/admin` | Admin | Survey-management overview |
+| `/admin/users` | Admin | Read-only roster: display name, email, total points |
 | `/admin/surveys/new` | Admin | Draft authoring |
-| `/admin/surveys/[surveyId]` | Admin | Edit draft or view frozen published definition; archive/copy |
+| `/admin/surveys/import` | Admin | Requirement-document upload, processing/error state, link to generated draft |
+| `/admin/surveys/[surveyId]` | Admin | Shared builder for `draft`/`needs_review`, approval, or read-only published preview; archive/copy |
+| `/api/admin/survey-imports` | Admin POST | Bounded multipart extraction/generation; never a public upload endpoint |
+| `/api/admin/survey-imports/[importId]` | Admin GET/POST | Owner-authorized status / retry with re-upload and idempotency checks |
 | `/admin/surveys/[surveyId]/push` | Admin | All/selected targeting and push receipt |
 | `/admin/surveys/[surveyId]/responses` | Admin | Paginated answers and private quality flags |
 
 Use server actions for signup/login/logout, submission, draft saves, copying,
-archiving, and pushing. Reserve route handlers for Auth callbacks and genuine HTTP
-integration needs. Validate all route IDs server-side. Render consistent not-found
+approval, archiving, and pushing. Use route handlers for Auth callbacks and bounded
+multipart imports. Validate all route IDs server-side. Render consistent not-found
 or forbidden behavior without leaking unassigned survey titles. Use framework
 origin/CSRF protections and validate callback redirects against local allowed paths.
 
@@ -313,10 +437,14 @@ src/
     (user)/surveys/[assignmentId]/complete/page.tsx
     admin/layout.tsx
     admin/page.tsx
+    admin/users/page.tsx
     admin/surveys/new/page.tsx
+    admin/surveys/import/page.tsx
     admin/surveys/[surveyId]/page.tsx
     admin/surveys/[surveyId]/push/page.tsx
     admin/surveys/[surveyId]/responses/page.tsx
+    api/admin/survey-imports/route.ts
+    api/admin/survey-imports/[importId]/route.ts
     actions/                  # Auth, submit, and admin server actions
     layout.tsx
     page.tsx
@@ -331,6 +459,7 @@ src/
     auth/                     # Verified user and admin guards
     survey/                   # Public schemas, registry, safe DTOs
     server/                   # server-only grading/admin data access
+      imports/                # Bounded extraction, Gemini client, prompt, leases
     data/                     # Typed user-scoped queries
     validation/
   types/database.ts           # Generated from migrated schema
@@ -391,15 +520,14 @@ Phase 1 uses Next.js 16 with `src/proxy.ts`. Database types are generated from t
 actual migrated PostgreSQL catalog using the embedded PGlite test database, so
 type regeneration and RLS tests do not require Docker. PGlite shims Supabase Auth's
 identity table/function; hosted checks separately verify the real Auth integration.
-Phase 2 adds strict question configuration/publication validation and atomic
-submission RPCs. Admin authoring/push RPCs remain Phase 4. The Phase 2 example
-survey is installed by a committed migration and assigned only to admins who
-exist at migration time. It awards 100 points and uses all 249 ISO country codes
-plus a decline option. No general survey-push API is introduced early.
+Phase 2 added configuration/publication validation and atomic submission RPCs.
+Its historical example migration assigned admins; this is superseded by the
+non-participation revision. A follow-up migration/guard change must disable that
+eligibility without editing applied migrations or erasing audit records.
 
 Dashboard and assignment reads use invoker-security JSON RPCs (`available_surveys`
-and `assigned_survey`) with RLS and explicit caller ownership, including for admin
-participants. The dashboard fetches 20 records plus one pagination sentinel.
+and `assigned_survey`) with RLS and explicit caller ownership. The revision adds
+non-admin eligibility checks. The dashboard fetches 20 records plus one pagination sentinel.
 `submit_survey` locks the owned assignment exclusively and the survey in shared
 mode, allowing distinct users to submit concurrently while serializing with
 archival. It validates a maximum of 100 answers and 64 KiB of answer JSON.
@@ -427,6 +555,13 @@ local development and production. Keep preview deployments on an isolated
 Supabase environment before allowing preview writes. Production deployment and
 domain verification belong to Phase 5.
 
+`GEMINI_API_KEY` is supplied in the local `.env` per the owner. Read it only from
+server-only import modules; configure it as a server secret in Vercel. Never use
+a `NEXT_PUBLIC_*` alias, return it to clients, or log provider request headers.
+Missing/invalid Gemini configuration disables generation with an admin-facing
+error; manual authoring continues to work. Confirm the chosen Gemini model supports
+the required structured JSON contract during Phase 4 implementation.
+
 ## 10. Validation and phase gates
 
 | Phase | Deliverable and meaningful verification |
@@ -434,14 +569,18 @@ domain verification belong to Phase 5.
 | 0 | Resolve section 1, finalize this document, check no secret files staged, commit and push documentation, stop for explicit approval. |
 | 1 | Scaffold, typed Supabase clients, versioned schema/RLS/RPC foundations, auth and protected shells. Test migrations from empty DB, signup/confirmation/login/logout, cross-user RLS denial, and non-admin RPC denial. Confirm migration deployment status. |
 | 2 | Dashboard and all question renderers, example survey, validated atomic submission. Test invalid answers, unassigned access, concurrent/double submissions, full reward despite failed attention checks, flag/key isolation, and archive/submission races. |
-| 3 | Paginated history and balance. Reconcile totals to ledger, test zero state, zero-point survey, archived completion history, and ownership isolation. |
-| 4 | Admin authoring, publication, targeting, and response review. Test selected/all targeting, future-signup behavior, push retries, stale draft saves, frozen definitions, and forbidden direct mutations. |
+| 2A — revision follow-up | After architecture approval: remove admin participation/earning, retire admin example eligibility, and enforce client required-answer navigation. Test direct admin RPC denial, promotion/submission races, keyboard/forward-jump bypasses, decline/optional answers, and retained server validation. Commit/push and stop for review. |
+| 3 — on hold | Non-admin history and balance, after separate go-ahead. Reconcile ledger totals and test ownership/admin exclusion. |
+| 4 — expanded | Shared survey builder/approval/push/review plus read-only user roster and Gemini document import. Build shared authoring/approval first, then import into that same path. Test admin-excluded all/selected targeting, roster email/aggregate isolation, import type/size/extraction limits, provider timeout/malformed output, prompt injection, lease/idempotency retries, `needs_review` publication denial, edit-invalidated approval, and successful shared approval/push. |
 | 5 | Vibrant styling, mobile/tablet/desktop QA, keyboard/focus/error accessibility, production build, Vercel deploy, Auth redirect and production smoke checks, final README. |
 
 Use database tests for permissions and transactional invariants and a small number
 of integration/browser tests for critical flows. Perform lint/type/build checks as
 appropriate once application code exists. Report unavailable services or credentials
 as unverified dependencies rather than claiming successful integration.
+
+This revision changes only the architecture document. Approval permits the Phase 2A
+follow-up; it does not lift the Phase 3 hold or authorize jumping into Phase 4.
 
 At each phase completion, use conventional commits, push each commit to the
 authorized repository, summarize changes and verification, and stop for review.
