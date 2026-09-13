@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import { getUser } from "@/lib/auth/guards";
+import { getUser, getAdminStatus } from "@/lib/auth/guards";
 
 export default async function HomePage() {
-  redirect((await getUser()) ? "/dashboard" : "/login");
+  if (!await getUser()) redirect("/login");
+  redirect(await getAdminStatus() ? "/admin" : "/dashboard");
 }

@@ -2,14 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth/guards";
+import { requireParticipant } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { submissionSchema, receiptSchema } from "@/lib/survey/schema";
 
 export async function submitSurvey(
   payload: unknown,
 ): Promise<{ error: string }> {
-  await requireUser();
+  await requireParticipant();
   const parsed = submissionSchema.safeParse(payload);
   if (
     !parsed.success ||

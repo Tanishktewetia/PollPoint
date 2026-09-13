@@ -50,6 +50,25 @@ test("independent PostgreSQL sessions serialize duplicate submissions and archiv
       100,
     );
 
+    // Promotion wins: a waiting submission must recheck membership after the lock.
+    const promoted = await assignUser(cluster.db);
+    const promoter = await cluster.connect();
+    const blockedUser = await cluster.connect();
+    await blockedUser.query("set role authenticated");
+    await blockedUser.query("select set_config('request.jwt.claim.sub',$1,false)",[promoted.userId]);
+    await promoter.query("begin");
+    await promoter.query("insert into private.admin_memberships(user_id) values ($1)",[promoted.userId]);
+    const denied = assert.rejects(blockedUser.query("select public.submit_survey($1,$2)",[promoted.assignmentId,answers]),{code:"42501"});
+    await promoter.query("commit");
+    await denied;
+    // Submission wins: promotion waits, and future replay is denied without deleting history.
+    await clients[0].query("begin");
+    await clients[0].query("select public.submit_survey($1,$2)",[user.assignmentId,answers]);
+    const promotion = promoter.query("insert into private.admin_memberships(user_id) values ($1)",[user.userId]);
+    await clients[0].query("commit");
+    await promotion;
+    await assert.rejects(clients[0].query("select public.submit_survey($1,$2)",[user.assignmentId,answers]),{code:"42501"});
+
     const other = await assignUser(cluster.db);
     const writer = await cluster.connect(),
       participant = await cluster.connect();

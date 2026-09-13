@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
     verified = !error;
   }
-  const destination = verified ? safeRedirect(params.get("next")) : "/login?error=confirmation";
+  const membership = verified ? await supabase.rpc("is_admin") : null;
+  const destination = membership?.data === true ? "/admin" : verified ? safeRedirect(params.get("next")) : "/login?error=confirmation";
   const response = NextResponse.redirect(new URL(destination, getSiteUrl()));
   response.headers.set("Cache-Control", "private, no-store");
   response.headers.set("Referrer-Policy", "no-referrer");

@@ -569,8 +569,8 @@ the required structured JSON contract during Phase 4 implementation.
 | 0 | Resolve section 1, finalize this document, check no secret files staged, commit and push documentation, stop for explicit approval. |
 | 1 | Scaffold, typed Supabase clients, versioned schema/RLS/RPC foundations, auth and protected shells. Test migrations from empty DB, signup/confirmation/login/logout, cross-user RLS denial, and non-admin RPC denial. Confirm migration deployment status. |
 | 2 | Dashboard and all question renderers, example survey, validated atomic submission. Test invalid answers, unassigned access, concurrent/double submissions, full reward despite failed attention checks, flag/key isolation, and archive/submission races. |
-| 2A — revision follow-up | After architecture approval: remove admin participation/earning, retire admin example eligibility, and enforce client required-answer navigation. Test direct admin RPC denial, promotion/submission races, keyboard/forward-jump bypasses, decline/optional answers, and retained server validation. Commit/push and stop for review. |
-| 3 — on hold | Non-admin history and balance, after separate go-ahead. Reconcile ledger totals and test ownership/admin exclusion. |
+| 2A — revision follow-up | After architecture approval: remove admin participation/earning, retire admin example eligibility, and enforce client required-answer navigation. Test direct admin RPC denial, promotion/submission races, keyboard/forward-jump bypasses, decline/optional answers, and retained server validation. Commit/push separately, then continue to the authorized Phase 3. |
+| 3 — approved | Non-admin history and balance, authorized immediately after Phase 2A. Reconcile ledger totals and test ownership/admin exclusion. |
 | 4 — expanded | Shared survey builder/approval/push/review plus read-only user roster and Gemini document import. Build shared authoring/approval first, then import into that same path. Test admin-excluded all/selected targeting, roster email/aggregate isolation, import type/size/extraction limits, provider timeout/malformed output, prompt injection, lease/idempotency retries, `needs_review` publication denial, edit-invalidated approval, and successful shared approval/push. |
 | 5 | Vibrant styling, mobile/tablet/desktop QA, keyboard/focus/error accessibility, production build, Vercel deploy, Auth redirect and production smoke checks, final README. |
 
@@ -579,8 +579,8 @@ of integration/browser tests for critical flows. Perform lint/type/build checks 
 appropriate once application code exists. Report unavailable services or credentials
 as unverified dependencies rather than claiming successful integration.
 
-This revision changes only the architecture document. Approval permits the Phase 2A
-follow-up; it does not lift the Phase 3 hold or authorize jumping into Phase 4.
+The owner approved Phase 2A followed immediately by Phase 3, with separate commits
+and pushes. Stop before Phase 4; the roster and Gemini pipeline remain there.
 
 At each phase completion, use conventional commits, push each commit to the
 authorized repository, summarize changes and verification, and stop for review.

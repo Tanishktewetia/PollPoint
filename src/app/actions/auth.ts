@@ -18,6 +18,9 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
     return { error: "We couldn’t sign you in. Check your email and password, then try again." };
   }
   revalidatePath("/", "layout");
+  const { data: admin, error: roleError } = await supabase.rpc("is_admin");
+  if (roleError) return { error: "We couldn’t verify account access. Please try again." };
+  if (admin) redirect("/admin");
   redirect(safeRedirect(formData.get("next")));
 }
 

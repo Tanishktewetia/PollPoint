@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CircleCheck, ArrowRight } from "lucide-react";
-import { requireUser } from "@/lib/auth/guards";
+import { requireParticipant } from "@/lib/auth/guards";
 import { assignedSurvey } from "@/lib/data/surveys";
 
 export const metadata = { title: "Survey complete" };
@@ -11,7 +11,7 @@ export default async function CompletionPage({
   params: Promise<{ assignmentId: string }>;
 }) {
   const { assignmentId } = await params;
-  await requireUser(`/surveys/${assignmentId}/complete`);
+  await requireParticipant(`/surveys/${assignmentId}/complete`);
   const survey = await assignedSurvey(assignmentId);
   if (!survey.receipt) redirect(`/surveys/${assignmentId}`);
   return (

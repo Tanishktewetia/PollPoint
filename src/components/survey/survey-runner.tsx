@@ -27,9 +27,11 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
   const [submitError, setSubmitError] = useState("");
   const [pending, startTransition] = useTransition();
   const heading = useRef<HTMLHeadingElement>(null);
-  const questions = survey.questions.filter(
-    (q) => q.section === (step === 0 ? "demographics" : "body"),
-  );
+  const reviewStep = survey.questions.length;
+  const current = survey.questions[step];
+  const questions = current ? [current] : [];
+  const blocked = survey.questions.slice(0, step < reviewStep ? step + 1 : reviewStep)
+    .some((q) => answerError(q, answers[q.id]));
   const answered = survey.questions.filter(
     (q) => answers[q.id] && !answerError(q, answers[q.id]),
   ).length;
@@ -45,6 +47,7 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
   }, [dirty]);
 
   function goTo(next: number) {
+    if (next > step && !validate(next)) return;
     setStep(next);
     setErrors({});
     requestAnimationFrame(() => {
@@ -52,31 +55,25 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
       heading.current?.scrollIntoView({ behavior: "instant", block: "start" });
     });
   }
-  function validate(all = false) {
+  function validate(until = reviewStep) {
     const invalid: Record<string, string> = {};
-    (all ? survey.questions : questions).forEach((q) => {
+    survey.questions.slice(0, until).forEach((q) => {
       const error = answerError(q, answers[q.id]);
       if (error) invalid[q.id] = error;
     });
     setErrors(invalid);
-    const first = Object.keys(invalid)[0];
-    if (first) {
-      if (all)
-        setStep(
-          survey.questions.find((q) => q.id === first)?.section ===
-            "demographics"
-            ? 0
-            : 1,
-        );
+    const first = survey.questions.findIndex((q) => invalid[q.id]);
+    if (first >= 0) {
+      setStep(first);
       requestAnimationFrame(() =>
-        document.getElementById(`question-${first}`)?.focus(),
+        document.getElementById(`question-${survey.questions[first].id}`)?.focus(),
       );
       return false;
     }
     return true;
   }
   function submit() {
-    if (!validate(true)) return;
+    if (!validate()) return;
     setSubmitError("");
     startTransition(async () => {
       try {
@@ -135,8 +132,8 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
       <div className="mb-7">
         <div className="mb-3 flex justify-between text-xs font-semibold text-muted">
           <span>
-            Step {step + 1} of 3 ·{" "}
-            {["About you", "Your perspective", "Review"][step]}
+            Step {step + 1} of {reviewStep + 1} ·{" "}
+            {current ? (current.section === "demographics" ? "About you" : "Your perspective") : "Review"}
           </span>
           <span>
             {answered} of {survey.questions.length} answered
@@ -147,12 +144,12 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
           aria-label="Survey steps"
           aria-valuenow={step + 1}
           aria-valuemin={0}
-          aria-valuemax={3}
+          aria-valuemax={reviewStep + 1}
           className="h-2 overflow-hidden rounded-full bg-stone-200"
         >
           <div
             className="h-full rounded-full bg-brand transition-all"
-            style={{ width: `${((step + 1) / 3) * 100}%` }}
+            style={{ width: `${((step + 1) / (reviewStep + 1)) * 100}%` }}
           />
         </div>
       </div>
@@ -160,8 +157,9 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          if (step === 2) submit();
-          else if (validate()) goTo(step + 1);
+          if (pending) return;
+          if (step === reviewStep) submit();
+          else goTo(step + 1);
         }}
         className="rounded-3xl border border-stone-200 bg-white p-6 sm:p-9"
       >
@@ -170,29 +168,23 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
           tabIndex={-1}
           className="mb-3 scroll-mt-8 text-xl font-bold"
         >
-          {
-            [
-              "First, a little about you.",
-              "Let’s hear your perspective.",
-              "Ready to make it count?",
-            ][step]
-          }
+          {current ? (current.section === "demographics" ? "First, a little about you." : "Your perspective") : "Ready to make it count?"}
         </h2>
         <p className="mb-8 text-sm leading-6 text-muted">
-          {step === 0
+          {current?.section === "demographics"
             ? "These answers apply to this survey only. Choose “Prefer not to say” whenever you’d rather not share."
-            : step === 1
+            : current
               ? "There’s room for your honest opinion. Answer each required question to continue."
               : "Check your answers below. Once submitted, your response is final and your points are awarded automatically."}
         </p>
-        {step < 2 ? (
+        {step < reviewStep ? (
           <div className="space-y-9">
             {questions.map((q) => (
               <QuestionField
                 key={q.id}
                 question={q}
                 answer={answers[q.id]}
-                error={errors[q.id]}
+                error={errors[q.id] ?? (answers[q.id] ? answerError(q, answers[q.id]) ?? undefined : undefined)}
                 disabled={pending}
                 onChange={(value) => {
                   setAnswers((old) => ({ ...old, [q.id]: value }));
@@ -218,7 +210,7 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => goTo(section === "demographics" ? 0 : 1)}
+                    onClick={() => goTo(survey.questions.findIndex((q) => q.section === section))}
                     className="text-sm font-semibold text-brand underline"
                   >
                     Edit answers
@@ -272,20 +264,20 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
           ) : (
             <span />
           )}
-          <button type="submit" disabled={pending} className="primary-button">
+          <button type="submit" disabled={pending || blocked} className="primary-button">
             {pending ? (
               <>
                 <LoaderCircle size={18} className="animate-spin" />
                 Submitting…
               </>
-            ) : step === 2 ? (
+            ) : step === reviewStep ? (
               <>
                 <Check size={18} />
                 Submit & earn {survey.reward_points} points
               </>
             ) : (
               <>
-                Continue
+                Next
                 <ArrowRight size={18} />
               </>
             )}

@@ -34,3 +34,9 @@ export async function requireAdmin() {
   if (error || data !== true) throw new Error("Admin access could not be verified. Please try again.");
   return user;
 }
+
+export async function requireParticipant(next = "/dashboard") {
+  const user = await requireUser(next);
+  if (await getAdminStatus()) redirect("/admin");
+  return user;
+}

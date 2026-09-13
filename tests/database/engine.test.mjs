@@ -115,12 +115,8 @@ test("unassigned callers and anonymous users cannot submit or read another assig
     ),
     { code: "42501" },
   );
-  const view = await asRole(db, "authenticated", adminId, (sql) =>
-    sql.query("select public.assigned_survey($1) as value", [
-      user.assignmentId,
-    ]),
-  );
-  assert.equal(view.rows[0].value, null);
+  await assert.rejects(asRole(db, "authenticated", adminId, (sql) =>
+    sql.query("select public.assigned_survey($1)", [user.assignmentId])), {code: "42501"});
 });
 
 test("transaction rolls back answers and flags if the ledger insert fails", async () => {
@@ -238,4 +234,20 @@ test("publication rejects unsupported config, missing demographics and leaked ch
     ),
     { code: "22023" },
   );
+});
+
+
+test("admins cannot participate through legacy assignments, replay, or internal helpers", async () => {
+  await db.query("insert into private.admin_memberships(user_id) values ($1)", [user.userId]);
+  await assert.rejects(submit(), {code: "42501"});
+  for (const query of ["select public.available_surveys(1)", "select public.assigned_survey('" + user.assignmentId + "')", "select private.submit_survey_v2('" + user.assignmentId + "','[]')"])
+    await assert.rejects(asRole(db,"authenticated",user.userId,sql=>sql.query(query)), {code:"42501"});
+  assert.equal((await db.query("select count(*)::int as n from public.points_ledger where user_id=$1",[user.userId])).rows[0].n,1);
+  const push = (await db.query("select first_push_id from public.survey_assignments where id=$1",[user.assignmentId])).rows[0].first_push_id;
+  for (const [query,args] of [
+    ["insert into public.survey_push_targets values ($1,$2)",[push,adminId]],
+    ["insert into public.survey_assignments(survey_id,user_id,first_push_id) values ($1,$2,$3)",[sampleId,adminId,push]],
+    ["insert into public.survey_submissions(assignment_id,survey_id,user_id,survey_title_snapshot,reward_points_snapshot) values ($1,$2,$3,'Blocked',100)",[user.assignmentId,sampleId,adminId]],
+    ["insert into public.points_ledger(user_id,submission_id,amount) values ($1,gen_random_uuid(),100)",[adminId]],
+  ]) await assert.rejects(db.query(query,args),{code:"42501"});
 });

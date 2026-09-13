@@ -5,7 +5,7 @@ import {
   MessageCircle,
   Sparkles,
 } from "lucide-react";
-import { requireUser } from "@/lib/auth/guards";
+import { requireParticipant } from "@/lib/auth/guards";
 import { availableSurveys } from "@/lib/data/surveys";
 
 export const metadata = { title: "Dashboard" };
@@ -15,7 +15,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ notice?: string; page?: string }>;
 }) {
-  await requireUser();
+  await requireParticipant();
   const params = await searchParams;
   const page = Math.min(
     10000,

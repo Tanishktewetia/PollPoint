@@ -162,31 +162,37 @@ try {
   await expect(
     page.getByRole("heading", { name: "First, a little about you." }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(
-    page.getByRole("alert").filter({ hasText: "highlighted" }),
-  ).toBeVisible();
+  const next = page.getByRole("button", { name: "Next", exact: true });
+  await expect(next).toBeDisabled();
+  await page.getByRole("spinbutton").press("Enter");
+  await expect(page.getByRole("spinbutton")).toBeVisible();
+  await page.locator("form[novalidate]").evaluate((form) => form.requestSubmit());
+  await expect(next).toBeDisabled();
   await page
     .getByRole("checkbox", { name: "Prefer not to say", exact: true })
     .check();
+  await next.click();
   await page
     .getByRole("combobox", {
       name: "What is your personal monthly income (INR)?",
     })
     .selectOption("prefer_not_to_say");
+  await next.click();
   await page.getByRole("radio", { name: "Single", exact: true }).check();
+  await next.click();
   await page
     .getByRole("combobox", { name: "Which country do you live in?" })
     .selectOption("IN");
+  await next.click();
   await mkdir("test-results/phase-2", { recursive: true });
   await page.screenshot({
     path: "test-results/phase-2/demographics-desktop.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page
     .getByRole("radio", { name: "Less than an hour", exact: true })
     .check();
+  await next.click();
   await page
     .getByRole("checkbox", { name: "Wireless earbuds", exact: true })
     .check();
@@ -199,21 +205,26 @@ try {
   await page
     .getByRole("checkbox", { name: "Wireless earbuds", exact: true })
     .check();
+  await next.click();
   await page
     .getByRole("combobox", { name: "How often do you shop online?" })
     .selectOption("weekly");
+  await next.click();
   await page.getByRole("radio", { name: "Agree", exact: true }).check();
+  await next.click();
   await page
     .getByRole("textbox", {
       name: "What is one accessory you use almost every day?",
     })
     .fill("Wireless earbuds");
+  await next.click();
   await page.getByRole("radio", { name: "Red", exact: true }).check();
-  await page
-    .getByRole("textbox", {
-      name: "What would make your online shopping experience better?",
-    })
-    .fill("Clearer sizing information.");
+  await next.click();
+  await expect(next).toBeEnabled(); // Optional answer may be omitted.
+  await page.getByRole("textbox").fill("   ");
+  await expect(next).toBeDisabled();
+  await page.getByRole("textbox").fill("");
+  await expect(next).toBeEnabled();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
@@ -224,17 +235,17 @@ try {
     path: "test-results/phase-2/questions-mobile.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Ready to make it count?" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Back", exact: true }).click();
-  await expect(
-    page.getByRole("textbox", {
-      name: "What is one accessory you use almost every day?",
-    }),
-  ).toHaveValue("Wireless earbuds");
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", {name: "Edit answers"}).first().click();
+  await page.getByRole("checkbox", {name: "Prefer not to say", exact:true}).uncheck();
+  await expect(next).toBeDisabled();
+  await page.locator("form[novalidate]").evaluate((form) => form.requestSubmit());
+  await expect(page.getByRole("spinbutton")).toBeVisible();
+  await page.getByRole("spinbutton").fill("28");
+  for (let i=0;i<11;i++) await next.click();
   failNextSubmission = true;
   await page.getByRole("button", { name: "Submit & earn 100 points" }).click();
   await expect(
@@ -273,6 +284,13 @@ try {
   await expect(
     page.getByRole("heading", { name: "This page isn’t here." }),
   ).toBeVisible();
+  await cluster.db.query("insert into private.admin_memberships(user_id) values ($1)", [user.id]);
+  for (const path of ["/dashboard", `/surveys/${participant.assignmentId}`, "/login", "/signup", "/"]) {
+    await page.goto(`${origin}${path}`);
+    await page.waitForURL(`${origin}/admin`);
+    await expect(page.getByRole("link", {name:"Dashboard", exact:true})).toHaveCount(0);
+    await expect(page.getByRole("link", {name:"Take survey"})).toHaveCount(0);
+  }
   console.log(
     "Survey browser integration passed: required answers, all formats, review/back, retry, full reward despite failed check, one credit, completed redirect, and cross-user denial.",
   );

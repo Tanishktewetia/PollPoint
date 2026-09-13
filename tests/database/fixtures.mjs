@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 export const adminId = "10000000-0000-4000-8000-000000000010";
 export const sampleId = "e2000000-0000-4000-8000-000000000001";
@@ -7,9 +8,19 @@ export async function seedExample(db) {
   await db.query("insert into private.admin_memberships(user_id) values ($1)", [
     adminId,
   ]);
-  return (
-    await db.query("select private.install_example_survey($1) as id", [adminId])
-  ).rows[0].id;
+  const migration = await readFile(new URL("../../supabase/migrations/20260913000400_example_survey.sql", import.meta.url), "utf8");
+  const definition = JSON.parse(migration.split("$definition$")[1]);
+  const countries = JSON.parse(migration.split("$countries$")[1]);
+  await db.query("insert into public.surveys(id,title,description,reward_points,created_by) values ($1,'Everyday life, your way','Everyday habits and choices',100,$2)", [sampleId, adminId]);
+  for (const [position, item] of definition.entries()) {
+    if (item.key === "country") item.config.options = countries;
+    const {rows: [q]} = await db.query(`insert into public.survey_questions(survey_id,position,section,field_key,type,presentation,prompt,required,config)
+      values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
+      [sampleId,position,item.section,item.key,item.type,item.presentation,item.prompt,item.required ?? true,JSON.stringify(item.config)]);
+    if (item.check) await db.query("insert into private.question_checks(question_id,rule) values ($1,$2)", [q.id,JSON.stringify(item.check)]);
+  }
+  await db.query("update public.surveys set status='published',published_at=now() where id=$1", [sampleId]);
+  return sampleId;
 }
 
 export async function assignUser(db, surveyId = sampleId) {
