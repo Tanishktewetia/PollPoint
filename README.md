@@ -16,10 +16,9 @@ Document imports generate `needs_review` drafts in that same builder and approva
 
 See [architecture](./ARCHITECTURE.md) and [Phase 5 verification](./docs/PHASE_5_VERIFICATION.md).
 Production is configured at [pollpoint.vercel.app](https://pollpoint.vercel.app).
-Production login/signup now load, and protected routes redirect signed-out visitors.
-The remaining Auth launch check is the Supabase production callback allowlist:
-the latest smoke test received the localhost fallback. See Phase 5 verification
-for remaining production checks.
+Production login/signup and the real confirmation/login/logout smoke test pass.
+Protected routes, ownership checks, and admin-only operations enforce access correctly.
+See Phase 5 verification for the remaining production import checks.
 
 ## Local development
 

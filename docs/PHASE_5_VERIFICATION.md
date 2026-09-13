@@ -34,17 +34,19 @@ the diagnostic change itself did not change which values pass validation.
 No replacement Vercel project or schema migration was created.
 
 The owner added `NEXT_PUBLIC_SITE_URL` in Vercel Production. The production Auth
-smoke test found the Supabase confirmation link redirected to `http://localhost:3000`
+initial smoke test found the Supabase confirmation link redirected to `http://localhost:3000`
 instead of `https://pollpoint.vercel.app/auth/confirm`, indicating the production
 callback is not accepted by the current Auth configuration. The temporary identity
 and empty profile were removed; no email, responses, or rewards were created.
-Set Site URL and the exact callback allowlist as documented in README, then rerun
-`npm run test:hosted -- --production`.
+After the owner saved the production Auth URLs, `npm run test:hosted -- --production`
+passed on 2026-09-13: signup identity/profile provisioning, pre-confirmation login denial,
+real production confirmation callback, session cookies, login/logout, protected routes,
+profile isolation, direct-write denial, cross-user survey denial, empty history/zero
+balance, and participant denial of admin roster/authoring/import RPCs. The temporary
+identity and empty profile were removed. No email, hosted responses, or points were created.
 
 Still required before declaring Phase 5 complete:
 
-- Confirm the Supabase production Auth URLs are saved.
-- Verify production confirmation/login/logout without sending email or earning points.
 - Inspect deployed import duration/packaging and verify production import behavior.
 
 The historical admin award remains 100 points; no cleanup was performed.
