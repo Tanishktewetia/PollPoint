@@ -1,8 +1,8 @@
 # PollPoint Architecture
 
-Status: Phase 0 complete; awaiting architecture approval. Product decisions in
-section 1 are confirmed. Phase 1 requires explicit approval. No application code
-or database changes are part of Phase 0.
+Status: Architecture approved on 2026-09-13. Phase 1 implementation is in progress.
+Product decisions in section 1 are confirmed. Each later phase still requires its
+own explicit approval.
 
 ## 1. Product decisions and scope
 
@@ -361,6 +361,9 @@ The environment-name inspection found `SUPABASE_ANON_KEY` and
 printing secrets and use the project URL supplied in the brief:
 `https://skquddbddxbdsvwkwbza.supabase.co`.
 
+Phase 1 update: the supplied URL was added to the ignored local `.env`; both keys
+were preserved. Supabase Auth is reachable and requires email confirmation.
+
 Next.js does not expose an unprefixed environment variable to browser code.
 Keep `SUPABASE_ANON_KEY` as the server input and explicitly pass only that public
 anon key and URL into the browser client provider. Alternatively a documented
@@ -377,6 +380,18 @@ The brief reports an existing Supabase/GitHub link and says pushes to `main` are
 tracked. That configuration has not been inspected. Confirm in Phase 1 whether
 the integration actually applies production migrations and which status checks
 prove success; a repository link alone is not proof that DDL was applied.
+
+The owner subsequently confirmed production migration deployment from `main`.
+Phase 1 will push tested migrations through that integration and verify the remote
+check plus actual schema access before declaring hosted wiring complete.
+
+Phase 1 uses Next.js 16 with `src/proxy.ts`. Database types are generated from the
+actual migrated PostgreSQL catalog using the embedded PGlite test database, so
+type regeneration and RLS tests do not require Docker. PGlite shims Supabase Auth's
+identity table/function; hosted checks separately verify the real Auth integration.
+Full question configuration/publication validation and atomic submission RPCs
+arrive with Phase 2; admin authoring/push RPCs arrive with Phase 4. Phase 1 exposes
+no authoring, publication, submission, or point-award mutation API.
 
 **Migration credential correction:** a Supabase service-role JWT is a Data API
 credential, not a PostgreSQL connection credential and not a general SQL executor.

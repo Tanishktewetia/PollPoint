@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: #19252d;
+  --color-muted: #63716f;
+  --color-paper: #f7f8f3;
+  --color-brand: #215846;
+  --color-lime: #d3f266;
+  --font-sans: Arial, Helvetica, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--color-paper); color: var(--color-ink); }
+button, input, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+button:disabled { cursor: wait; }
+::selection { background: #d3f266; color: #19252d; }
+:focus-visible { outline: 3px solid #517c2f; outline-offset: 4px; }
+input { outline-offset: 2px; }
+
+.input-field {
+  @apply mt-2 w-full rounded-xl border border-stone-300 bg-white px-4 py-3.5 text-base text-ink shadow-xs transition placeholder:text-stone-400 focus:border-brand focus:outline-brand;
+}
+.primary-button {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 font-semibold text-white transition hover:bg-[#163e31] disabled:opacity-60;
+}
+.eyebrow { @apply text-xs font-bold uppercase tracking-[0.17em]; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
