@@ -35,6 +35,7 @@
 - Desktop demographics and mobile question/receipt screenshots were inspected;
   the mobile flow has no horizontal overflow. The final styling/QA pass remains
   Phase 5.
+- All four existing auth/browser regression tests passed against the updated app.
 
 The browser adapter is only in the test directory; it is not an app endpoint and
 does not bypass production authentication. All reward-producing tests run locally,
@@ -45,7 +46,14 @@ verify Auth and reject unassigned survey reads/submissions without writing rewar
 
 The new migration files are `20260913000300_survey_engine.sql` and
 `20260913000400_example_survey.sql`. They deploy through the existing GitHub-to-
-Supabase integration on `main`. Hosted deployment verification is recorded after
-the Phase 2 implementation push. Previously applied migrations remain unchanged.
+Supabase integration on `main` in commit `3906922`. Both the Supabase deployment
+check and GitHub CI completed successfully. Previously applied migrations remain
+unchanged.
+
+Hosted checks confirmed the new RPCs, denied anonymous submissions, and verified
+that a new signup cannot read or submit the existing admin example assignment.
+The full Auth smoke check also passed. The temporary Auth identity and its empty
+profile were removed; no hosted survey responses or rewards were created by tests.
+The example is ready on the existing admin account's dashboard.
 
 Phase 3 (history and balance) requires a separate approval.

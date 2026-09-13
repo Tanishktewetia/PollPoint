@@ -1,6 +1,6 @@
 # PollPoint Architecture
 
-Status: Phases 1 and 2 approved; Phase 2 implementation on 2026-09-13.
+Status: Phase 2 completed and deployed on 2026-09-13; awaiting Phase 3 approval.
 Product decisions in section 1 are confirmed. Each later phase still requires its
 own explicit approval.
 
