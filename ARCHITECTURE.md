@@ -1,8 +1,8 @@
 # PollPoint Architecture
 
-Status: Architecture revision awaiting approval. Phase 3 is on hold. The confirmed
-changes below supersede earlier admin-participation and authoring decisions;
-implementation must wait for approval of this revision.
+Status: Phases 2A and 3 are complete. Phase 4 is approved and implemented;
+verification and deployment are recorded in `docs/PHASE_4_VERIFICATION.md`.
+Phase 5 remains a separate approval gate.
 
 ## 1. Product decisions and scope
 
@@ -601,3 +601,38 @@ string through BigInt without converting to JavaScript Number. Existing RLS and
 grants remain intact; an additional ordered index supports history pagination.
 `/history` shows the balance, completion dates, and stored receipt links, including
 archived surveys. Submission revalidates history. No points redemption is added.
+
+
+## Phase 4 implementation notes
+
+- Migrations `20260913000700_admin_authoring.sql` and
+  `20260913000800_survey_imports.sql` add the shared save/approve/push/copy/archive
+  RPCs, admin reads, and private import metadata. Published survey records retain
+  their previous state; approval is required for newly published drafts.
+- The roster includes non-admin participants only. The first admin's historical
+  100-point award remains in the immutable ledger, excluded from participant roster
+  totals because the account is an admin. Cleanup is explicitly deferred to the owner.
+- The shared builder supports every existing question format. Mandatory demographics
+  come from one shared template, also used for generated drafts. The Gemini response
+  contract is derived from the same authoring schema; unsupported provider JSON Schema
+  keywords are omitted only in the outbound schema, while full Zod and SQL validation
+  remain mandatory before persistence. There is no second question renderer.
+- Default provider: `gemini-3.6-flash`, configurable with server-only `GEMINI_MODEL`.
+  A live structured-output request passed validation. Model discovery listed 2.5 Flash,
+  but its generation endpoint rejected new access and recommended 3.6 Flash.
+- The Node import handler sets `maxDuration = 120`, with 15 seconds for upload,
+  15 seconds for extraction in a memory-limited worker, and a 60-second Gemini timeout.
+  No automatic provider retry; the UI offers retry of the same operation. Confirm the
+  deployed Vercel plan honors the 120-second route budget in Phase 5 before launch.
+  Worker code and parser dependencies are explicitly included in output file tracing.
+- Two concurrent generation leases globally; ten attempts per admin per hour. Leases
+  expire after 150 seconds. Failed/expired attempts can retry by re-uploading the same
+  content and reward. Only request ID/content-hash retry metadata is kept in browser
+  session storage; raw files/text/provider responses are not persisted by PollPoint.
+- Status reads use `/api/admin/survey-imports/[importId]` (GET); retries re-upload to
+  the shared `/api/admin/survey-imports` POST endpoint with the same request ID.
+  Completed retries return the same draft. Every persistence transaction rechecks
+  admin membership, lease ownership, and the server-recorded reward.
+- Selected targeting loads the roster in pages, up to 10,000 participants in the MVP.
+  All-user targeting snapshots eligible participants at push time. No emails or push
+  notifications are sent by these operations.

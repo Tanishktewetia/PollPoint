@@ -64,6 +64,10 @@ before(async () => {
     [question],
   );
   await db.query(
+    "update public.surveys set approved_by=created_by,approved_at=now(),approved_definition_version=definition_version where id=$1",
+    [survey],
+  );
+  await db.query(
     "update public.surveys set status='published', published_at=now() where id=$1",
     [survey],
   );
@@ -107,7 +111,7 @@ test("clean migration replay enables RLS on every application table", async () =
   const { rows } =
     await db.query(`select c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname in ('public','private') and c.relkind='r'`);
-  assert.equal(rows.length, 12);
+  assert.equal(rows.length, 13);
   assert.ok(rows.every((row) => row.relrowsecurity));
 });
 

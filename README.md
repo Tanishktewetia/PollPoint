@@ -145,5 +145,30 @@ optional questions can be skipped. `/history` shows paginated stored receipts an
 the ledger-backed points balance, including archived completions. All totals are
 transported as decimal strings and formatted without precision loss.
 
-Phase 2A and Phase 3 verification is recorded in `docs/`. The Phase 4 admin builder,
-roster, and Gemini document import are the next scope, awaiting their phase gate.
+Phase 2A and Phase 3 verification is recorded in `docs/`. Phase 4 adds the shared admin builder, roster, and Gemini document import.
+
+
+## Admin surveys and document imports
+
+Use `/admin` to create a survey or draft from a `.txt`, `.docx`, or text-based `.pdf`.
+Manual and generated surveys use the same builder. Save, review, approve, then push
+to all current participants or selected accounts. Editing invalidates approval;
+first push publishes and freezes the definition. Copy a published survey to revise
+it. Responses and private attention flags are available from its builder.
+
+`/admin/users` is a read-only participant roster with current Auth email, display
+name, and ledger totals. Admin accounts are excluded; historical awards are retained.
+
+Set `GEMINI_API_KEY` and optionally `GEMINI_MODEL` (default `gemini-3.6-flash`) in
+server environment variables. Never expose either secret through `NEXT_PUBLIC_*`.
+Imports accept one file up to 4 MiB, 100 PDF pages, 20 MiB expanded DOCX, and 50,000
+extracted characters. Image-only or encrypted PDFs require preparation before upload.
+The upload UI discloses that text is sent to Gemini; PollPoint stores metadata and
+validated drafts, not original files or raw model output. Generation failure leaves
+manual authoring available. Retry with the same file/reward to recover an interrupted
+operation without duplicating its draft.
+
+The import route requests 120 seconds. Confirm the Vercel deployment honors this
+budget and includes the traced extraction worker before Phase 5 launch. No separate
+backend is required. Isolated tests mock Gemini only in a test-process preload;
+production always calls the configured Gemini service.

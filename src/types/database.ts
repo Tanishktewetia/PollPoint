@@ -224,6 +224,10 @@ export type Database = {
         updated_at: string;
         published_at: string | null;
         archived_at: string | null;
+        authoring_source: string;
+        approved_by: string | null;
+        approved_at: string | null;
+        approved_definition_version: number | null;
       };
       Insert: {
         id?: string;
@@ -237,6 +241,10 @@ export type Database = {
         updated_at?: string;
         published_at?: string | null;
         archived_at?: string | null;
+        authoring_source?: string;
+        approved_by?: string | null;
+        approved_at?: string | null;
+        approved_definition_version?: number | null;
       };
       Update: {
         id?: string;
@@ -250,13 +258,30 @@ export type Database = {
         updated_at?: string;
         published_at?: string | null;
         archived_at?: string | null;
+        authoring_source?: string;
+        approved_by?: string | null;
+        approved_at?: string | null;
+        approved_definition_version?: number | null;
       };
-      Relationships: [{ foreignKeyName: "surveys_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }];
+      Relationships: [{ foreignKeyName: "surveys_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }, { foreignKeyName: "surveys_approved_by_fkey"; columns: ["approved_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }];
     };
     };
     Views: Record<string, never>;
     Functions: {
+    admin_approve_survey: { Args: { p_id: string; p_version: number }; Returns: Json };
+    admin_archive_survey: { Args: { p_id: string }; Returns: undefined };
+    admin_begin_import: { Args: { p_request_id: string; p_meta: Json }; Returns: Json };
+    admin_copy_survey: { Args: { p_id: string }; Returns: Json };
+    admin_fail_import: { Args: { p_id: string; p_lease: string; p_error: string }; Returns: undefined };
+    admin_finish_import: { Args: { p_id: string; p_lease: string; p_definition: Json }; Returns: Json };
+    admin_import_status: { Args: { p_id: string }; Returns: Json };
+    admin_push_survey: { Args: { p_id: string; p_version: number; p_audience: string; p_users: string[]; p_request_id: string }; Returns: Json };
+    admin_responses: { Args: { p_id: string; p_page: number }; Returns: Json };
+    admin_save_survey: { Args: { p_id: string | null; p_version: number | null; p_definition: Json }; Returns: Json };
     admin_session: { Args: Record<PropertyKey, never>; Returns: boolean };
+    admin_survey: { Args: { p_id: string }; Returns: Json };
+    admin_survey_list: { Args: { p_page: number }; Returns: Json };
+    admin_user_roster: { Args: { p_page: number }; Returns: Json };
     assigned_survey: { Args: { p_assignment_id: string }; Returns: Json };
     available_surveys: { Args: { p_page: number }; Returns: Json };
     bootstrap_first_admin: { Args: { target_user_id: string }; Returns: undefined };

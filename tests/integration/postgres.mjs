@@ -33,6 +33,7 @@ export async function startPostgres() {
     const client = pg.getPgClient("postgres", "127.0.0.1");
     await client.connect();
     connections.add(client);
+    client.once("end", () => connections.delete(client));
     client.exec = (sql) => client.query(sql);
     return client;
   }
