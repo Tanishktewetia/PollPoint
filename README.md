@@ -135,3 +135,15 @@ its empty profile. It sends no email and never changes a real user's credentials
 - No application secrets are sent to the browser, logged, or committed.
 
 Vercel deployment and final launch documentation are reserved for Phase 5.
+
+
+## Participant history and eligibility
+
+Admins land in `/admin` and cannot take surveys or earn new points. Historic
+records are retained. Participant navigation requires a valid answer before Next;
+optional questions can be skipped. `/history` shows paginated stored receipts and
+the ledger-backed points balance, including archived completions. All totals are
+transported as decimal strings and formatted without precision loss.
+
+Phase 2A and Phase 3 verification is recorded in `docs/`. The Phase 4 admin builder,
+roster, and Gemini document import are the next scope, awaiting their phase gate.

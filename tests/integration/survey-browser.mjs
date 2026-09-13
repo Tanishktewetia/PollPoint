@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { chromium, expect } from "@playwright/test";
 import { startPostgres } from "./postgres.mjs";
-import { seedExample, assignUser } from "../database/fixtures.mjs";
+import { seedExample, assignUser, completeHistory } from "../database/fixtures.mjs";
 
 const cluster = await startPostgres();
 let server, app, browser;
@@ -35,6 +35,7 @@ try {
   };
   let failNextSubmission = false;
   const rpcQueries = {
+    participant_history: (p) => ["select public.participant_history($1) as value", [p.p_page]],
     is_admin: () => ["select public.is_admin() as value", []],
     admin_session: () => ["select public.admin_session() as value", []],
     available_surveys: (p) => [
@@ -154,6 +155,9 @@ try {
   ]);
   const page = await context.newPage();
   page.on("dialog", (dialog) => dialog.accept());
+  await page.goto(`${origin}/history`);
+  await expect(page.getByRole("heading", {name:"Your first completion starts here."})).toBeVisible();
+  await expect(page.getByRole("region", {name:"Points balance"})).toContainText("0 points");
   await page.goto(`${origin}/dashboard`);
   await expect(
     page.getByRole("heading", { name: "Everyday life, your way" }),
@@ -284,12 +288,29 @@ try {
   await expect(
     page.getByRole("heading", { name: "This page isn’t here." }),
   ).toBeVisible();
+  await page.goto(`${origin}/history`);
+  await expect(page.getByRole("region", {name:"Points balance"})).toContainText("100 points");
+  await page.getByRole("link", {name:"View receipt for Everyday life, your way"}).click();
+  await page.waitForURL(`${origin}/surveys/${participant.assignmentId}/complete`);
+  await completeHistory(cluster.db,user.id,21);
+  await page.goto(`${origin}/history`);
+  await expect(page.getByRole("region", {name:"Points balance"})).toContainText("240 points");
+  await expect(page.getByRole("link", {name:/View receipt for/})).toHaveCount(20);
+  await expect(page.getByRole("link",{name:"History & points",exact:true})).toHaveAttribute("aria-current","page");
+  await page.getByRole("link", {name:"Next page"}).click();
+  await expect(page.getByRole("link", {name:/View receipt for/})).toHaveCount(2);
+  await expect(page.getByText("+0 points",{exact:true})).toBeVisible();
+  await page.getByRole("link", {name:"Previous page"}).click();
+  await expect(page.getByRole("link", {name:/View receipt for/})).toHaveCount(20);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.screenshot({path:"test-results/phase-2/history-mobile.png",fullPage:true});
   await cluster.db.query("insert into private.admin_memberships(user_id) values ($1)", [user.id]);
-  for (const path of ["/dashboard", `/surveys/${participant.assignmentId}`, "/login", "/signup", "/"]) {
+  for (const path of ["/history", "/dashboard", `/surveys/${participant.assignmentId}`, "/login", "/signup", "/"]) {
     await page.goto(`${origin}${path}`);
     await page.waitForURL(`${origin}/admin`);
     await expect(page.getByRole("link", {name:"Dashboard", exact:true})).toHaveCount(0);
     await expect(page.getByRole("link", {name:"Take survey"})).toHaveCount(0);
+    await expect(page.getByRole("link", {name:"History & points"})).toHaveCount(0);
   }
   console.log(
     "Survey browser integration passed: required answers, all formats, review/back, retry, full reward despite failed check, one credit, completed redirect, and cross-user denial.",

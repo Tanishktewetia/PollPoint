@@ -74,6 +74,13 @@ try {
   const blocked = await userClient.rpc("submit_survey", { p_assignment_id: sample.id, p_answers: [] });
   assert.equal(blocked.error?.code, "42501");
   console.log("Hosted survey RPCs and cross-user submission denial passed; no hosted rewards or responses were created.");
+  const history = await userClient.rpc("participant_history", { p_page: 1 });
+  assert.ifError(history.error);
+  assert.deepEqual(history.data, { total_points: "0", entries: [] });
+  await page.goto(`${origin}/history`);
+  await page.getByRole("heading", { name: "History & points", exact: true }).waitFor();
+  assert.ok((await page.getByRole("region", { name: "Points balance" }).innerText()).includes("0 points"));
+  console.log("Hosted empty history, exact zero balance, and protected history page passed.");
 } finally {
   await browser?.close();
   await userClient.auth.signOut();

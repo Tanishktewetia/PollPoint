@@ -25,3 +25,7 @@ const { error: submissionError } = await client.rpc("submit_survey", {
 });
 console.log(`Anonymous survey submission: ${submissionError ? `denied (${submissionError.code})` : "allowed — review grants"}.`);
 if (submissionError?.code !== "42501") process.exitCode = 1;
+
+const { error: historyError } = await client.rpc("participant_history", { p_page: 1 });
+console.log(`Anonymous history: ${historyError ? `denied (${historyError.code})` : "allowed - review grants"}.`);
+if (historyError?.code !== "42501") process.exitCode = 1;

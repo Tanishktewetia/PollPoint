@@ -18,3 +18,6 @@ Database types regenerated from all migrations without a public API type change.
 
 Migration: `20260913000500_admin_exclusion.sql`; earlier migrations unchanged.
 Phase 3 is authorized to follow this phase immediately. Phase 4 remains deferred.
+
+Deployment: commit `a283bed` pushed to main. Supabase and GitHub CI checks passed;
+a hosted read-only RPC check verified the new participant authorization guard.

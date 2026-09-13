@@ -46,6 +46,7 @@ export async function submitSurvey(
         "We couldn’t confirm your receipt. Please try again; you’ll only be credited once.",
     };
   revalidatePath("/dashboard");
+  revalidatePath("/history");
   revalidatePath(`/surveys/${parsed.data.assignmentId}`);
   redirect(`/surveys/${parsed.data.assignmentId}/complete`);
 }

@@ -65,3 +65,22 @@ export async function validAnswers(db, surveyId = sampleId) {
               : { option_id: q.config.options[0].id },
     }));
 }
+
+// Isolated history fixtures use real publication and submission validation.
+export async function completeHistory(db, userId, count, reward = 7) {
+  for (let i = 0; i < count; i++) {
+    const surveyId = randomUUID(), pushId = randomUUID(), assignmentId = randomUUID();
+    await db.query("insert into public.surveys(id,title,reward_points,created_by) values ($1,$2,$3,$4)", [surveyId, `History survey ${i+1}`, i === 0 ? 0 : reward, adminId]);
+    await db.query(`insert into public.survey_questions(survey_id,position,section,field_key,type,presentation,prompt,required,config)
+      select $1,position,section,field_key,type,presentation,prompt,required,config from public.survey_questions where survey_id=$2`,[surveyId,sampleId]);
+    await db.query("update public.surveys set status='published',published_at=now() where id=$1",[surveyId]);
+    await db.query(`insert into public.survey_pushes(id,survey_id,audience,created_by,request_id,request_fingerprint,targeted_count,new_assignment_count)
+      values ($1,$2,'selected',$3,gen_random_uuid(),'history-fixture',1,1)`,[pushId,surveyId,adminId]);
+    await db.query("insert into public.survey_push_targets values ($1,$2)",[pushId,userId]);
+    await db.query("insert into public.survey_assignments(id,survey_id,user_id,first_push_id) values ($1,$2,$3,$4)",[assignmentId,surveyId,userId,pushId]);
+    const answers = await validAnswers(db,surveyId);
+    const {asRole} = await import("./harness.mjs");
+    await asRole(db,"authenticated",userId,sql=>sql.query("select public.submit_survey($1,$2)",[assignmentId,JSON.stringify(answers)]));
+    await db.query("update public.surveys set status='archived',archived_at=now() where id=$1",[surveyId]);
+  }
+}

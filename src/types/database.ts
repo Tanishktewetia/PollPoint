@@ -261,6 +261,7 @@ export type Database = {
     available_surveys: { Args: { p_page: number }; Returns: Json };
     bootstrap_first_admin: { Args: { target_user_id: string }; Returns: undefined };
     is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+    participant_history: { Args: { p_page: number }; Returns: Json };
     submit_survey: { Args: { p_assignment_id: string; p_answers: Json }; Returns: Json };
     update_display_name: { Args: { new_display_name: string }; Returns: undefined };
     };

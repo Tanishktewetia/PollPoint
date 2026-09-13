@@ -569,8 +569,8 @@ the required structured JSON contract during Phase 4 implementation.
 | 0 | Resolve section 1, finalize this document, check no secret files staged, commit and push documentation, stop for explicit approval. |
 | 1 | Scaffold, typed Supabase clients, versioned schema/RLS/RPC foundations, auth and protected shells. Test migrations from empty DB, signup/confirmation/login/logout, cross-user RLS denial, and non-admin RPC denial. Confirm migration deployment status. |
 | 2 | Dashboard and all question renderers, example survey, validated atomic submission. Test invalid answers, unassigned access, concurrent/double submissions, full reward despite failed attention checks, flag/key isolation, and archive/submission races. |
-| 2A — revision follow-up | After architecture approval: remove admin participation/earning, retire admin example eligibility, and enforce client required-answer navigation. Test direct admin RPC denial, promotion/submission races, keyboard/forward-jump bypasses, decline/optional answers, and retained server validation. Commit/push separately, then continue to the authorized Phase 3. |
-| 3 — approved | Non-admin history and balance, authorized immediately after Phase 2A. Reconcile ledger totals and test ownership/admin exclusion. |
+| 2A — complete | After architecture approval: remove admin participation/earning, retire admin example eligibility, and enforce client required-answer navigation. Test direct admin RPC denial, promotion/submission races, keyboard/forward-jump bypasses, decline/optional answers, and retained server validation. Commit/push separately, then continue to the authorized Phase 3. |
+| 3 — implemented | Non-admin history and balance, authorized immediately after Phase 2A. Reconcile ledger totals and test ownership/admin exclusion. |
 | 4 — expanded | Shared survey builder/approval/push/review plus read-only user roster and Gemini document import. Build shared authoring/approval first, then import into that same path. Test admin-excluded all/selected targeting, roster email/aggregate isolation, import type/size/extraction limits, provider timeout/malformed output, prompt injection, lease/idempotency retries, `needs_review` publication denial, edit-invalidated approval, and successful shared approval/push. |
 | 5 | Vibrant styling, mobile/tablet/desktop QA, keyboard/focus/error accessibility, production build, Vercel deploy, Auth redirect and production smoke checks, final README. |
 
@@ -587,3 +587,17 @@ authorized repository, summarize changes and verification, and stop for review.
 Because the brief explicitly requests `main` pushes for the linked migration
 workflow, follow that branch convention unless the owner changes it. Do not start
 the next phase until the owner explicitly approves it.
+
+
+Phase 2A deployed in `a283bed`; Supabase and GitHub CI checks passed. Hosted
+read-only verification confirms the participant guard. One historical admin award
+(100 points) remains preserved, while new participation is denied.
+
+Phase 3 adds `participant_history(integer)`, an invoker-security JSON RPC with
+explicit non-admin authorization and ownership filtering. It returns immutable
+completion snapshots, 20 entries plus a pagination sentinel, and the ledger SUM
+as a decimal string, including zero for an empty ledger. The UI formats that
+string through BigInt without converting to JavaScript Number. Existing RLS and
+grants remain intact; an additional ordered index supports history pagination.
+`/history` shows the balance, completion dates, and stored receipt links, including
+archived surveys. Submission revalidates history. No points redemption is added.
