@@ -21,9 +21,12 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:concurrency
       - run: npm run db:types && git diff --exit-code -- src/types/database.ts
       - run: npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           SUPABASE_ANON_KEY: ci-placeholder-public-key
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:survey-browser

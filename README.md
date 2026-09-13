@@ -5,12 +5,22 @@ Tailwind CSS 4, and Supabase Auth/Postgres. Deployable directly to Vercel.
 
 ## Current phase
 
-Phase 1 provides email/password signup, email confirmation, login/logout, protected
-dashboard/admin shells, and database migrations with RLS. Survey participation,
-history/balance, and admin survey management are subsequent approved phases.
+Phase 2 provides an assigned-survey dashboard, demographic and opinion questions,
+dropdowns, visible single/multiple choices, short/long text, review/edit steps,
+and atomic submission with point awards. Email/password Auth, protected routes,
+and RLS were completed in Phase 1. History/balance and admin survey management
+remain in their later approved phases.
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the approved model and phase gates.
 See [Phase 1 verification](./docs/PHASE_1_VERIFICATION.md) for completed checks and
 the remaining launch items.
+See [Phase 2 verification](./docs/PHASE_2_VERIFICATION.md) for the survey engine.
+
+The “Everyday life, your way” example is assigned to existing admins by the Phase 2
+migration. Sign in to that account and open the dashboard to try it. It contains
+11 questions and awards 100 points on completion, once per user. Demographics can
+be declined; income options explicitly use monthly INR. There is no broadcast to
+ordinary users or later signups. The example uses the same publication validation
+as future authored surveys.
 
 ## Run locally
 
@@ -81,6 +91,8 @@ npm test
 npm run db:types
 npm run build
 npm run test:e2e
+npm run test:concurrency
+npm run test:survey-browser
 npm run db:check
 ```
 
@@ -93,6 +105,15 @@ migrations fail the check. Browser tests use installed Microsoft Edge; change th
 Playwright channel or install Chromium if Edge is unavailable. Build before running
 browser tests, or start the development server separately.
 
+`test:concurrency` runs independent PostgreSQL 17 sessions to verify simultaneous
+submissions and archival. `test:survey-browser` starts an isolated PostgreSQL
+cluster, a test-only Supabase HTTP adapter on port 54329, and the production Next.js
+build on port 3001. It exercises the actual UI and SQL RPCs without creating hosted
+responses or rewards. Both tests stop their services and remove only their own
+temporary `.test-databases` directories. No Docker is needed. Build first; use Edge
+locally or install Chromium for CI. Integration tests require ports 3001 and 54329
+to be free. Screenshots are kept in ignored `test-results/phase-2/`.
+
 The hosted smoke test is opt-in (`npm run test:hosted`): it creates one temporary
 Auth identity via Admin-generated confirmation link, checks the real confirmation,
 login/logout and non-admin rejection flows, then removes only that identity and
@@ -103,8 +124,10 @@ its empty profile. It sends no email and never changes a real user's credentials
 - Protected pages verify the Auth user; database RLS still enforces ownership.
 - SQL admin RPCs verify membership independently of Next.js route guards.
 - Users and admins have no direct write grants for surveys, responses, assignments,
-  or points. Later phases add narrowly validated transactional RPCs.
+  or points. `submit_survey` validates ownership, answers, and stored rewards in one
+  transaction. Retries return the original receipt without another credit.
 - Question-check rules and response flags live in a non-exposed private schema.
+  Failed attention checks never reduce or block the fixed reward.
 - Published definitions and accepted history are immutable. Awards are unique per
   submission and must match its stored reward.
 - Private pages use session cookies and `private, no-store` responses. Auth callback

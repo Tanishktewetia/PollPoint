@@ -257,8 +257,11 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
     admin_session: { Args: Record<PropertyKey, never>; Returns: boolean };
+    assigned_survey: { Args: { p_assignment_id: string }; Returns: Json };
+    available_surveys: { Args: { p_page: number }; Returns: Json };
     bootstrap_first_admin: { Args: { target_user_id: string }; Returns: undefined };
     is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
+    submit_survey: { Args: { p_assignment_id: string; p_answers: Json }; Returns: Json };
     update_display_name: { Args: { new_display_name: string }; Returns: undefined };
     };
     Enums: Record<string, never>;

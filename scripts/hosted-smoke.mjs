@@ -36,7 +36,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(`${origin}/auth/confirm?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=email`);
   await page.waitForURL(`${origin}/dashboard`);
-  await page.getByRole("heading", { name: "You’re in. Welcome to PollPoint." }).waitFor();
+  await page.getByRole("heading", { name: "Your next opinion could be a rewarding one." }).waitFor();
   console.log("Real confirmation callback, session cookies, and protected dashboard passed.");
 
   await page.goto(`${origin}/admin`);
@@ -63,6 +63,17 @@ try {
   assert.equal((await userClient.rpc("admin_session")).error?.code, "42501");
   assert.equal((await userClient.from("profiles").update({ display_name: "Not allowed" }).eq("id", userId)).error?.code, "42501");
   console.log("Hosted profile isolation, direct-write denial, and admin RPC denial passed.");
+  const { data: available, error: availableError } = await userClient.rpc("available_surveys", { p_page: 1 });
+  assert.ifError(availableError);
+  assert.deepEqual(available, [], "A new signup must not inherit the earlier admin example assignment.");
+  const { data: sample, error: sampleError } = await admin.from("survey_assignments").select("id").eq("survey_id", "e2000000-0000-4000-8000-000000000001").limit(1).single();
+  assert.ifError(sampleError);
+  const hidden = await userClient.rpc("assigned_survey", { p_assignment_id: sample.id });
+  assert.ifError(hidden.error);
+  assert.equal(hidden.data, null);
+  const blocked = await userClient.rpc("submit_survey", { p_assignment_id: sample.id, p_answers: [] });
+  assert.equal(blocked.error?.code, "42501");
+  console.log("Hosted survey RPCs and cross-user submission denial passed; no hosted rewards or responses were created.");
 } finally {
   await browser?.close();
   await userClient.auth.signOut();

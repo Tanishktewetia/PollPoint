@@ -20,3 +20,8 @@ if (error?.code === "PGRST205" || error?.code === "42P01") {
 const { error: rpcError } = await client.rpc("admin_session");
 console.log(`Anonymous admin RPC: ${rpcError ? `denied (${rpcError.code})` : "allowed — review grants"}.`);
 if (rpcError?.code !== "42501") process.exitCode = 1;
+const { error: submissionError } = await client.rpc("submit_survey", {
+  p_assignment_id: "00000000-0000-4000-8000-000000000000", p_answers: [],
+});
+console.log(`Anonymous survey submission: ${submissionError ? `denied (${submissionError.code})` : "allowed — review grants"}.`);
+if (submissionError?.code !== "42501") process.exitCode = 1;

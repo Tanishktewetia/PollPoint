@@ -1,6 +1,6 @@
 # PollPoint Architecture
 
-Status: Architecture approved and Phase 1 implemented on 2026-09-13.
+Status: Phases 1 and 2 approved; Phase 2 implementation on 2026-09-13.
 Product decisions in section 1 are confirmed. Each later phase still requires its
 own explicit approval.
 
@@ -391,9 +391,26 @@ Phase 1 uses Next.js 16 with `src/proxy.ts`. Database types are generated from t
 actual migrated PostgreSQL catalog using the embedded PGlite test database, so
 type regeneration and RLS tests do not require Docker. PGlite shims Supabase Auth's
 identity table/function; hosted checks separately verify the real Auth integration.
-Full question configuration/publication validation and atomic submission RPCs
-arrive with Phase 2; admin authoring/push RPCs arrive with Phase 4. Phase 1 exposes
-no authoring, publication, submission, or point-award mutation API.
+Phase 2 adds strict question configuration/publication validation and atomic
+submission RPCs. Admin authoring/push RPCs remain Phase 4. The Phase 2 example
+survey is installed by a committed migration and assigned only to admins who
+exist at migration time. It awards 100 points and uses all 249 ISO country codes
+plus a decline option. No general survey-push API is introduced early.
+
+Dashboard and assignment reads use invoker-security JSON RPCs (`available_surveys`
+and `assigned_survey`) with RLS and explicit caller ownership, including for admin
+participants. The dashboard fetches 20 records plus one pagination sentinel.
+`submit_survey` locks the owned assignment exclusively and the survey in shared
+mode, allowing distinct users to submit concurrently while serializing with
+archival. It validates a maximum of 100 answers and 64 KiB of answer JSON.
+
+The server supports an optional `SUPABASE_URL` runtime override while retaining
+the brief's `NEXT_PUBLIC_SUPABASE_URL` default. This allows an isolated test app
+to use a local API adapter without rebuilding public environment constants.
+The browser never receives a service key. Integration tests run real PostgreSQL
+17 in a temporary local cluster and the production Next.js build; a test-only
+HTTP adapter supplies Auth identity and forwards RPCs under the authenticated
+database role. Hosted checks separately verify actual Supabase Auth and RPC denial.
 
 **Migration credential correction:** a Supabase service-role JWT is a Data API
 credential, not a PostgreSQL connection credential and not a general SQL executor.
