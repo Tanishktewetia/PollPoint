@@ -16,9 +16,10 @@ Document imports generate `needs_review` drafts in that same builder and approva
 
 See [architecture](./ARCHITECTURE.md) and [Phase 5 verification](./docs/PHASE_5_VERIFICATION.md).
 Production is configured at [pollpoint.vercel.app](https://pollpoint.vercel.app).
-Its HTTP 500 is traced to Supabase environment validation in the request proxy;
-the exact failing variable is being diagnosed. Local QA passing does not establish
-production readiness.
+Production login/signup now load, and protected routes redirect signed-out visitors.
+The remaining Auth launch check is the Supabase production callback allowlist:
+the latest smoke test received the localhost fallback. See Phase 5 verification
+for remaining production checks.
 
 ## Local development
 
@@ -161,10 +162,12 @@ survey integration test because Playwright clears the results directory.
 Automated checks do not replace physical-device or screen-reader testing.
 
 `npm run test:hosted` is an opt-in smoke test against a local app and real Supabase.
+Use `npm run test:hosted -- --production` to test the fixed
+`https://pollpoint.vercel.app` origin instead.
 It creates one temporary Auth identity through an Admin-generated confirmation link,
 tests confirmation/login/logout and non-admin denial, and removes that identity and
-its empty profile. It sends no email and awards no points. It currently restricts the
-app origin to localhost; a production Auth smoke check remains a separate launch step.
+its empty profile. It sends no email and awards no points. The production option
+requires the production callback URL to be allowed in Supabase Auth settings.
 
 ## Security and retained history
 

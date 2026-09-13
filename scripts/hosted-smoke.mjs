@@ -18,10 +18,13 @@ const userClient = createClient(
     auth: { persistSession: false, autoRefreshToken: false },
   },
 );
-const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const production = process.argv.includes("--production");
+const origin = production
+  ? "https://pollpoint.vercel.app"
+  : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 assert.ok(
-  ["localhost", "127.0.0.1"].includes(new URL(origin).hostname),
-  "Run hosted smoke checks against a local application server.",
+  production || ["localhost", "127.0.0.1"].includes(new URL(origin).hostname),
+  "Use a local app origin, or --production for the fixed pollpoint.vercel.app domain.",
 );
 const email = `pollpoint-smoke-${randomUUID()}@example.com`;
 const password = `${randomUUID()}Aa1!`;

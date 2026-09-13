@@ -27,21 +27,24 @@ Production deployment confirm `getSupabaseConfig()` fails validation in the requ
 proxy. Screenshots confirm the expected variable names and Production scopes, but
 masked values cannot establish which value fails. Validation now reports the exact
 variable and missing/empty/invalid-URL reason without logging any configuration value.
-The next deployment's runtime error will distinguish these cases.
+Commit `4ae7a8f` is now live with HTTP 200 on login/signup and correct signed-out
+redirects from `/dashboard` and `/admin`. GitHub CI, Supabase integration, and Vercel
+deployment checks passed. The precise configuration correction was not reported;
+the diagnostic change itself did not change which values pass validation.
 No replacement Vercel project or schema migration was created.
 
-The four reported Vercel keys omit an additional production Auth requirement:
-`NEXT_PUBLIC_SITE_URL=https://pollpoint.vercel.app`. This is a confirmed requirement
-of `getSiteUrl()`, not a diagnosis of the root-page 500. Set it for Production and
-redeploy. Supabase Site URL and exact callback allowlist are documented in README.
+The owner added `NEXT_PUBLIC_SITE_URL` in Vercel Production. The production Auth
+smoke test found the Supabase confirmation link redirected to `http://localhost:3000`
+instead of `https://pollpoint.vercel.app/auth/confirm`, indicating the production
+callback is not accepted by the current Auth configuration. The temporary identity
+and empty profile were removed; no email, responses, or rewards were created.
+Set Site URL and the exact callback allowlist as documented in README, then rerun
+`npm run test:hosted -- --production`.
 
 Still required before declaring Phase 5 complete:
 
-- Diagnose/fix the actual production error and verify the resulting deployment.
-- Confirm Vercel environment changes and Supabase Auth URLs are applied.
+- Confirm the Supabase production Auth URLs are saved.
 - Verify production confirmation/login/logout without sending email or earning points.
 - Inspect deployed import duration/packaging and verify production import behavior.
-- Styling commit `615173c` passed GitHub CI, Supabase integration, and Vercel build;
-  runtime HTTP 500 persisted. Verify those checks again for the diagnostic update.
 
 The historical admin award remains 100 points; no cleanup was performed.
