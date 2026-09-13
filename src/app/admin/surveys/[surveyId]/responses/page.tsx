@@ -1,4 +1,5 @@
 import { z } from "zod";
+import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/guards";
 import { adminSurvey, pageNumber } from "@/lib/data/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -38,6 +39,9 @@ export default async function ResponsesPage({
     .parse(data);
   return (
     <>
+      <Link href={`/admin/surveys/${survey.id}`} className="text-button mb-4">
+        Back to survey
+      </Link>
       <h1 className="text-3xl font-bold">Survey responses</h1>
       <p className="mb-7 mt-3 text-sm text-muted">
         {survey.title} · Private admin review

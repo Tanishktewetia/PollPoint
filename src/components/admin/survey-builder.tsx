@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { z } from "zod";
 import {
   adminSurveySchema,
@@ -52,6 +52,17 @@ export function SurveyBuilder({ initial }: { initial?: Survey }) {
     [error, setError] = useState("");
   const readOnly =
     saved?.status === "published" || saved?.status === "archived";
+  const approved =
+    !!saved && saved.approved_definition_version === saved.definition_version;
+  const workflow = useRef<HTMLDivElement>(null);
+  const focusNext = useRef(false);
+  useEffect(() => {
+    if (pending || !focusNext.current) return;
+    focusNext.current = false;
+    workflow.current
+      ?.querySelector<HTMLElement>(".primary-button")
+      ?.focus({ preventScroll: true });
+  }, [pending, saved]);
   function change(next: Definition) {
     setDraft(next);
     setDirty(true);
@@ -128,6 +139,7 @@ export function SurveyBuilder({ initial }: { initial?: Survey }) {
     });
   }
   function accept(s: Survey) {
+    focusNext.current = true;
     setSaved(s);
     setDraft({
       title: s.title,
@@ -161,6 +173,65 @@ export function SurveyBuilder({ initial }: { initial?: Survey }) {
             ? "Approved"
             : "Review required"}
         </p>
+      )}
+      {saved && (
+        <div
+          className="flex flex-wrap items-center gap-3 border-b border-stone-200 pb-5"
+          role="group"
+          aria-label="Survey management"
+        >
+          {saved && (
+            <>
+              <button
+                disabled={pending}
+                className={
+                  saved.status === "archived"
+                    ? "primary-button"
+                    : "secondary-button"
+                }
+                onClick={() =>
+                  run(async () => {
+                    const result = await copySurvey(saved.id);
+                    if (result.error) setError(result.error);
+                    else if (result.survey)
+                      router.push(`/admin/surveys/${result.survey.id}`);
+                  })
+                }
+              >
+                Copy survey
+              </button>
+              <Link
+                className="secondary-button"
+                href={`/admin/surveys/${saved.id}/responses`}
+              >
+                View responses
+              </Link>
+            </>
+          )}
+          {saved?.status === "published" && (
+            <button
+              disabled={pending}
+              className="text-button text-red-700 sm:ml-auto"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Archive this survey? Unfinished participants will no longer be able to submit.",
+                  )
+                )
+                  run(async () => {
+                    const result = await archiveSurvey(saved.id);
+                    if (result.error) setError(result.error);
+                    else {
+                      setSaved({ ...saved, status: "archived" });
+                      router.refresh();
+                    }
+                  });
+              }}
+            >
+              Archive
+            </button>
+          )}
+        </div>
       )}
       <fieldset
         disabled={pending || readOnly}
@@ -432,7 +503,7 @@ export function SurveyBuilder({ initial }: { initial?: Survey }) {
       ))}
       {!readOnly && (
         <button
-          className="primary-button"
+          className="secondary-button w-full border-dashed"
           disabled={pending || draft.questions.length >= 100}
           onClick={() =>
             change({
@@ -458,118 +529,94 @@ export function SurveyBuilder({ initial }: { initial?: Survey }) {
           {error}
         </p>
       )}
-      <div className="sticky bottom-0 flex flex-wrap items-center gap-4 border-t border-stone-200 bg-white/95 p-4">
-        {!readOnly && (
-          <>
-            <button
-              className="primary-button"
-              disabled={pending}
-              onClick={() =>
-                run(async () => {
-                  const result = await saveSurvey(
-                    saved?.id ?? null,
-                    saved?.definition_version ?? null,
-                    draft,
-                  );
-                  if (result.error) setError(result.error);
-                  else if (result.survey) {
-                    accept(result.survey);
-                    if (!saved)
-                      router.replace(`/admin/surveys/${result.survey.id}`);
-                  }
-                })
-              }
-            >
-              {pending ? "Working…" : "Save draft"}
-            </button>
-            <button
-              className="primary-button"
-              disabled={
-                pending ||
-                dirty ||
-                !saved ||
-                saved.approved_definition_version === saved.definition_version
-              }
-              onClick={() =>
-                run(async () => {
-                  if (!saved) return;
-                  const result = await approveSurvey(
-                    saved.id,
-                    saved.definition_version,
-                  );
-                  if (result.error) setError(result.error);
-                  else if (result.survey) accept(result.survey);
-                })
-              }
-            >
-              Approve survey
-            </button>
-            <span className="text-xs text-muted">
+      {saved?.status !== "archived" && (
+        <div
+          ref={workflow}
+          className="action-dock"
+          role="region"
+          aria-label="Survey workflow"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold">
               {dirty
-                ? "Unsaved edits · approval required after saving"
-                : "Changes saved"}
-            </span>
-          </>
-        )}
-        {saved &&
-          !dirty &&
-          (saved.status === "published" ||
-            saved.approved_definition_version === saved.definition_version) && (
-            <Link
-              className="primary-button"
-              href={`/admin/surveys/${saved.id}/push`}
-            >
-              Push survey
-            </Link>
-          )}
-        {saved && (
-          <>
-            <button
-              disabled={pending}
-              className="text-sm font-semibold text-brand"
-              onClick={() =>
-                run(async () => {
-                  const result = await copySurvey(saved.id);
-                  if (result.error) setError(result.error);
-                  else if (result.survey)
-                    router.push(`/admin/surveys/${result.survey.id}`);
-                })
-              }
-            >
-              Copy survey
-            </button>
-            <Link
-              className="text-sm font-semibold text-brand"
-              href={`/admin/surveys/${saved.id}/responses`}
-            >
-              View responses
-            </Link>
-          </>
-        )}
-        {saved?.status === "published" && (
-          <button
-            disabled={pending}
-            className="text-sm font-semibold text-red-700"
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Archive this survey? Unfinished participants will no longer be able to submit.",
-                )
-              )
-                run(async () => {
-                  const result = await archiveSurvey(saved.id);
-                  if (result.error) setError(result.error);
-                  else {
-                    setSaved({ ...saved, status: "archived" });
-                    router.refresh();
+                ? "1. Save your draft"
+                : !approved && !readOnly
+                  ? "2. Review and approve"
+                  : "3. Choose your audience"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted">
+              {dirty
+                ? "Unsaved edits · save before approval"
+                : !approved && !readOnly
+                  ? "Check every question before approving."
+                  : "Ready to push. Choose recipients on the next page."}
+            </p>
+          </div>
+          {!readOnly && (dirty || !approved) && (
+            <>
+              {dirty ? (
+                <button
+                  className="primary-button"
+                  disabled={pending}
+                  onClick={() =>
+                    run(async () => {
+                      const result = await saveSurvey(
+                        saved?.id ?? null,
+                        saved?.definition_version ?? null,
+                        draft,
+                      );
+                      if (result.error) setError(result.error);
+                      else if (result.survey) {
+                        accept(result.survey);
+                        if (!saved)
+                          router.replace(`/admin/surveys/${result.survey.id}`);
+                      }
+                    })
                   }
-                });
-            }}
-          >
-            Archive
-          </button>
-        )}
-      </div>
+                >
+                  {pending ? "Working…" : "Save draft"}
+                </button>
+              ) : (
+                <button
+                  className="primary-button"
+                  disabled={
+                    pending ||
+                    dirty ||
+                    !saved ||
+                    saved.approved_definition_version ===
+                      saved.definition_version
+                  }
+                  onClick={() =>
+                    run(async () => {
+                      if (!saved) return;
+                      const result = await approveSurvey(
+                        saved.id,
+                        saved.definition_version,
+                      );
+                      if (result.error) setError(result.error);
+                      else if (result.survey) accept(result.survey);
+                    })
+                  }
+                >
+                  {pending ? "Working…" : "Approve survey"}
+                </button>
+              )}
+            </>
+          )}
+          {saved &&
+            !dirty &&
+            (saved.status === "published" ||
+              saved.approved_definition_version ===
+                saved.definition_version) && (
+              <Link
+                className="primary-button"
+                href={`/admin/surveys/${saved.id}/push`}
+              >
+                Push survey
+              </Link>
+            )}
+        </div>
+      )}
     </div>
   );
 }

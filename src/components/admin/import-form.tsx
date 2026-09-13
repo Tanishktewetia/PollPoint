@@ -100,15 +100,28 @@ export function ImportForm() {
           Files and extracted text are not stored by PollPoint. Review the
           generated draft in the survey builder, then approve and push it.
         </p>
-        <p className="text-xs leading-6 text-muted">
-          One file up to 4 MiB. PDFs must contain text and have at most 100
-          pages. DOCX files may expand to at most 20 MiB. Extracted text is
-          limited to 50,000 characters. Encrypted files and OCR are not
-          supported.
-        </p>
-        <button className="primary-button" type="submit">
-          {busy ? "Drafting your survey…" : "Generate draft"}
-        </button>
+        <details className="rounded-xl bg-paper px-4 py-2">
+          <summary className="cursor-pointer text-sm font-semibold text-brand">
+            File requirements & limits
+          </summary>
+          <p className="pb-2 text-xs leading-6 text-muted">
+            One file up to 4 MiB. PDFs must contain text and have at most 100
+            pages. DOCX files may expand to at most 20 MiB. Extracted text is
+            limited to 50,000 characters. Encrypted files and OCR are not
+            supported.
+          </p>
+        </details>
+        <div className="flex flex-col gap-4 border-t border-stone-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted">
+            Next: review and edit your generated questions.
+          </p>
+          <button
+            className="primary-button w-full shrink-0 sm:w-auto"
+            type="submit"
+          >
+            {busy ? "Drafting your survey…" : "Generate draft"}
+          </button>
+        </div>
       </fieldset>
       {busy && (
         <p role="status" className="text-sm text-brand">

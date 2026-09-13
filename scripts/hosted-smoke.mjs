@@ -77,7 +77,7 @@ try {
   await page.waitForURL(`${origin}/dashboard`);
   await page
     .getByRole("heading", {
-      name: "Your next opinion could be a rewarding one.",
+      name: "Your surveys",
     })
     .waitFor();
   console.log(

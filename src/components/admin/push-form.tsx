@@ -67,7 +67,10 @@ export function PushForm({
         disabled={!eligible || pending || !!receipt}
         className="space-y-5"
       >
-        <label className="block text-sm">
+        <legend className="mb-4 text-lg font-bold">Choose your audience</legend>
+        <label
+          className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border-2 p-4 text-sm font-bold ${audience === "all" ? "border-brand bg-lime/20" : "border-stone-200"}`}
+        >
           <input
             type="radio"
             checked={audience === "all"}
@@ -81,7 +84,9 @@ export function PushForm({
         <p className="text-xs text-muted">
           Admins are excluded. Later signups need another push.
         </p>
-        <label className="block text-sm">
+        <label
+          className={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border-2 p-4 text-sm font-bold ${audience === "selected" ? "border-brand bg-lime/20" : "border-stone-200"}`}
+        >
           <input
             type="radio"
             checked={audience === "selected"}
@@ -144,13 +149,22 @@ export function PushForm({
             )}
           </div>
         )}
-        <button
-          type="submit"
-          className="primary-button"
-          disabled={audience === "selected" && !selected.length}
-        >
-          {pending ? "Pushing…" : "Push survey"}
-        </button>
+        {!receipt && (
+          <div className="flex flex-col gap-4 border-t border-stone-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted">
+              {audience === "selected"
+                ? `${selected.length} participant(s) selected`
+                : "Send to all current participants."}
+            </p>
+            <button
+              type="submit"
+              className="primary-button w-full sm:w-auto"
+              disabled={audience === "selected" && !selected.length}
+            >
+              {pending ? "Pushing…" : "Push survey"}
+            </button>
+          </div>
+        )}
       </fieldset>
       {!eligible && (
         <p className="text-sm text-amber-800">
@@ -177,7 +191,7 @@ export function PushForm({
           </p>
           <button
             type="button"
-            className="mt-3 font-bold underline"
+            className="secondary-button mt-4"
             onClick={reset}
           >
             Start another push

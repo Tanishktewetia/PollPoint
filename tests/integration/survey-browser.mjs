@@ -425,18 +425,54 @@ try {
   await auditScreen(page, "admin-surveys");
   await page.goto(`${origin}/admin/surveys/new`);
   await auditScreen(page, "builder");
+  await expect(
+    page
+      .getByRole("region", { name: "Survey workflow" })
+      .locator(".primary-button"),
+  ).toHaveText("Save draft");
+  const skip = page.getByRole("link", { name: "Skip to content" });
+  await skip.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("main")).toBeFocused();
+  await page.getByLabel("Survey title", { exact: true }).focus();
+  for (let tab = 0; tab < 14; tab++) {
+    await page.keyboard.press("Tab");
+    expect(
+      await page.evaluate(() => {
+        const focused = document.activeElement;
+        const r = focused.getBoundingClientRect();
+        return focused.contains(
+          document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
+        );
+      }),
+      "sticky navigation and actions must not obscure keyboard focus",
+    ).toBe(true);
+  }
   await page
     .getByLabel("Survey title", { exact: true })
     .fill("Manual browser survey");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.waitForURL(/\/admin\/surveys\/[0-9a-f-]+$/);
   const manualUrl = page.url();
+  await expect(
+    page
+      .getByRole("region", { name: "Survey workflow" })
+      .locator(".primary-button"),
+  ).toHaveText("Approve survey");
   await page
     .getByRole("button", { name: "Approve survey", exact: true })
     .click();
   await expect(
     page.getByRole("link", { name: "Push survey", exact: true }),
   ).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Survey workflow" })
+      .locator(".primary-button"),
+  ).toHaveText("Push survey");
+  await expect(
+    page.getByRole("link", { name: "Push survey", exact: true }),
+  ).toBeFocused();
   await page
     .getByLabel("Survey title", { exact: true })
     .fill("Reviewed manual survey");

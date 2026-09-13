@@ -20,8 +20,17 @@ export default async function HistoryPage({
   const { totalPoints, entries, hasMore } = await participantHistory(page);
   return (
     <>
-      <p className="eyebrow mb-3 text-brand">Every response counts</p>
-      <h1 className="text-3xl font-bold tracking-tight">History & points</h1>
+      <div className="page-header">
+        <div>
+          <p className="eyebrow mb-2 text-brand">Every response counts</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            History & points
+          </h1>
+        </div>
+        <Link href="/dashboard" className="primary-button">
+          Explore surveys <ArrowRight size={18} aria-hidden="true" />
+        </Link>
+      </div>
       <section
         aria-label="Points balance"
         className="hero-panel mt-7 rounded-3xl bg-brand p-7 text-white sm:p-9"
@@ -94,9 +103,6 @@ export default async function HistoryPage({
               ? "Complete a survey to see your points and receipt here."
               : "Go back to see your earlier results."}
           </p>
-          <Link href="/dashboard" className="primary-button">
-            Explore surveys <ArrowRight size={16} />
-          </Link>
         </section>
       )}
       {(page > 1 || hasMore) && (

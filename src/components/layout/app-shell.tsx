@@ -21,11 +21,19 @@ export function AppShell({
       >
         Skip to content
       </a>
-      <header className="border-b border-stone-200 bg-white/95">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5 px-5 py-5 sm:px-8">
-          <Brand />
-          <div className="flex items-center gap-4">
-            <span className="hidden max-w-56 truncate text-sm text-muted md:block">
+      <header className="app-navigation sticky top-0 z-40 border-b border-stone-200 bg-white shadow-sm">
+        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-x-6 px-4 sm:px-8 lg:grid-cols-[auto_1fr_auto]">
+          <div className="flex h-16 items-center gap-3 lg:h-20">
+            <Brand />
+            <span className="hidden rounded-md bg-paper px-2 py-1 text-xs font-bold text-muted xl:block">
+              {admin ? "Admin" : "Member"}
+            </span>
+          </div>
+          <div className="col-span-2 row-start-2 pb-3 lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:pb-0">
+            <MainNavigation admin={admin} />
+          </div>
+          <div className="col-start-2 row-start-1 flex items-center gap-3 lg:col-start-3">
+            <span className="hidden max-w-36 truncate text-xs text-muted xl:block">
               {email}
             </span>
             <form action={logout}>
@@ -40,9 +48,8 @@ export function AppShell({
           </div>
         </div>
       </header>
-      <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <MainNavigation admin={admin} />
-        <main id="main-content" tabIndex={-1} className="min-w-0 py-7 sm:py-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-8">
+        <main id="main-content" tabIndex={-1} className="min-w-0 py-6 sm:py-9">
           {children}
         </main>
         <footer className="border-t border-stone-200 py-6 text-xs text-muted">

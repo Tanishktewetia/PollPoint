@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus, FileUp, ArrowRight } from "lucide-react";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
@@ -28,19 +29,26 @@ export default async function AdminPage({
     .parse(data);
   return (
     <>
-      <p className="eyebrow mb-3 text-brand">Administration</p>
-      <h1 className="text-3xl font-bold">Your admin workspace.</h1>
-      <div className="my-7 flex flex-wrap gap-4">
-        <Link className="primary-button" href="/admin/surveys/new">
-          Create survey
-        </Link>
-        <Link className="secondary-button" href="/admin/surveys/import">
-          Draft from document
-        </Link>
-        <Link className="secondary-button" href="/admin/users">
-          User roster
-        </Link>
+      <div className="page-header">
+        <div>
+          <p className="eyebrow mb-2 text-brand">Administration</p>
+          <h1 className="text-3xl font-extrabold">Your admin workspace.</h1>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Create a survey, review its questions, then choose who receives it.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col gap-3">
+          <Link className="primary-button" href="/admin/surveys/new">
+            <Plus size={20} aria-hidden="true" />
+            Create survey
+          </Link>
+          <Link className="secondary-button" href="/admin/surveys/import">
+            <FileUp size={18} aria-hidden="true" />
+            Draft from document
+          </Link>
+        </div>
       </div>
+      <h2 className="mb-4 text-lg font-bold">Manage your surveys</h2>
       <div className="grid gap-4 md:grid-cols-2">
         {rows.slice(0, 20).map((s) => (
           <Link
@@ -54,10 +62,18 @@ export default async function AdminPage({
                 ? "Gemini draft"
                 : "Manual survey"}
             </p>
-            <h2 className="text-lg font-bold">{s.title}</h2>
+            <h3 className="text-lg font-bold">{s.title}</h3>
             <p className="mt-3 text-sm text-muted">
               {s.reward_points} points per completion
             </p>
+            <span className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-brand underline underline-offset-4">
+              {s.status === "needs_review"
+                ? "Review draft"
+                : s.status === "published"
+                  ? "Manage survey"
+                  : "Open survey"}
+              <ArrowRight size={16} aria-hidden="true" />
+            </span>
           </Link>
         ))}
       </div>

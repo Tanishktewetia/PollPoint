@@ -50,3 +50,20 @@ Still required before declaring Phase 5 complete:
 - Inspect deployed import duration/packaging and verify production import behavior.
 
 The historical admin award remains 100 points; no cleanup was performed.
+
+## Navigation and action hierarchy pass
+
+- Persistent header with role-specific navigation, a filled active tab and underline;
+  survey-taking and nested admin pages keep their parent section highlighted.
+- Compact dashboard header puts the first survey action in the initial mobile viewport.
+  Admin creation sits beside the page heading; document import is secondary.
+- Primary actions use larger filled buttons; secondary actions use outlined buttons.
+  Builder Save → Approve → Push occupies one persistent workflow bar, while Copy,
+  response review, and Archive are grouped separately. Add question is secondary.
+- Survey Next/Submit stays visible, Back is secondary, and history leads back to surveys.
+  Import and push forms separate their final action from inputs and supporting details.
+- Axe and overflow checks cover 12 screens at 390, 768, and 1440px, with 320px reflow.
+  Checks also cover sticky navigation after scrolling, parent-section active states,
+  initial-viewport primary actions, skip navigation, and unobscured keyboard focus.
+  Auth keyboard/reduced-motion checks and the complete isolated survey/admin workflow pass.
+- Production document-import verification remains the separate outstanding launch check.

@@ -1,10 +1,5 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  ClipboardList,
-  MessageCircle,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, ClipboardList, MessageCircle } from "lucide-react";
 import { requireParticipant } from "@/lib/auth/guards";
 import { availableSurveys } from "@/lib/data/surveys";
 
@@ -32,29 +27,24 @@ export default async function DashboardPage({
           This account does not have admin access.
         </p>
       )}
-      <div className="hero-panel rounded-3xl bg-brand px-7 py-9 text-white sm:px-10">
-        <p className="eyebrow mb-4 text-lime">
-          A little perspective goes a long way
-        </p>
-        <h1 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
-          Your next opinion could be a rewarding one.
-        </h1>
-        <p className="mt-4 max-w-xl text-sm leading-7 text-white/80">
-          Explore your surveys, share what you think, and earn points for every
-          completed response.
-        </p>
-        <span className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-lime">
-          <Sparkles size={16} aria-hidden="true" />
-          Your voice makes a difference
-        </span>
+      <div className="page-header">
+        <div>
+          <p className="eyebrow mb-2 text-brand">Share your perspective</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            Your surveys
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Choose a survey below. Complete it once to earn the points shown.
+          </p>
+        </div>
       </div>
-      <div className="mb-6 mt-10 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between">
         <h2 className="text-xl font-bold">Surveys for you</h2>
         <span className="text-xs text-muted">Page {page}</span>
       </div>
       {cards.length ? (
         <div className="grid gap-5 md:grid-cols-2">
-          {cards.map((card) => (
+          {cards.map((card, index) => (
             <article
               key={card.id}
               className="survey-card flex flex-col rounded-2xl border border-stone-200 bg-white p-6"
@@ -71,12 +61,12 @@ export default async function DashboardPage({
               <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">
                 {card.description}
               </p>
-              <div className="mt-auto flex items-center justify-between gap-4 pt-7">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-4 pt-6">
                 <span className="text-xs text-muted">
                   {card.question_count} questions
                 </span>
                 <Link
-                  className="primary-button text-sm"
+                  className={`${index === 0 ? "primary-button" : "secondary-button"} w-full sm:w-auto`}
                   href={`/surveys/${card.id}`}
                 >
                   Take survey

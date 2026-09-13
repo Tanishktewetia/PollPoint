@@ -30,7 +30,8 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
   const reviewStep = survey.questions.length;
   const current = survey.questions[step];
   const questions = current ? [current] : [];
-  const blocked = survey.questions.slice(0, step < reviewStep ? step + 1 : reviewStep)
+  const blocked = survey.questions
+    .slice(0, step < reviewStep ? step + 1 : reviewStep)
     .some((q) => answerError(q, answers[q.id]));
   const answered = survey.questions.filter(
     (q) => answers[q.id] && !answerError(q, answers[q.id]),
@@ -66,7 +67,9 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
     if (first >= 0) {
       setStep(first);
       requestAnimationFrame(() =>
-        document.getElementById(`question-${survey.questions[first].id}`)?.focus(),
+        document
+          .getElementById(`question-${survey.questions[first].id}`)
+          ?.focus(),
       );
       return false;
     }
@@ -112,28 +115,34 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
           )
             e.preventDefault();
         }}
-        className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-brand"
+        className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand"
       >
         <ArrowLeft size={16} />
         Back to surveys
       </Link>
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow mb-3 text-brand">Your perspective matters</p>
-          <h1 className="text-3xl font-bold tracking-tight">{survey.title}</h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-muted">
-            {survey.description}
-          </p>
+      <div className="mb-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="eyebrow text-brand">Your survey</p>
+          <span className="rounded-full bg-lime px-3 py-1.5 text-sm font-bold text-brand">
+            {survey.reward_points} points
+          </span>
         </div>
-        <span className="rounded-full bg-lime px-4 py-2 text-sm font-bold text-brand">
-          {survey.reward_points} points
-        </span>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+          {survey.title}
+        </h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
+          {survey.description}
+        </p>
       </div>
-      <div className="mb-7">
+      <div className="mb-5">
         <div className="mb-3 flex justify-between text-xs font-semibold text-muted">
           <span>
             Step {step + 1} of {reviewStep + 1} ·{" "}
-            {current ? (current.section === "demographics" ? "About you" : "Your perspective") : "Review"}
+            {current
+              ? current.section === "demographics"
+                ? "About you"
+                : "Your perspective"
+              : "Review"}
           </span>
           <span>
             {answered} of {survey.questions.length} answered
@@ -163,14 +172,14 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
         }}
         className="rounded-3xl border border-stone-200 bg-white p-6 sm:p-9"
       >
-        <h2
-          ref={heading}
-          tabIndex={-1}
-          className="mb-3 scroll-mt-8 text-xl font-bold"
-        >
-          {current ? (current.section === "demographics" ? "First, a little about you." : "Your perspective") : "Ready to make it count?"}
+        <h2 ref={heading} tabIndex={-1} className="mb-3 text-xl font-bold">
+          {current
+            ? current.section === "demographics"
+              ? "First, a little about you."
+              : "Your perspective"
+            : "Ready to make it count?"}
         </h2>
-        <p className="mb-8 text-sm leading-6 text-muted">
+        <p className="mb-5 text-sm leading-6 text-muted">
           {current?.section === "demographics"
             ? "These answers apply to this survey only. Choose “Prefer not to say” whenever you’d rather not share."
             : current
@@ -184,7 +193,12 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
                 key={q.id}
                 question={q}
                 answer={answers[q.id]}
-                error={errors[q.id] ?? (answers[q.id] ? answerError(q, answers[q.id]) ?? undefined : undefined)}
+                error={
+                  errors[q.id] ??
+                  (answers[q.id]
+                    ? (answerError(q, answers[q.id]) ?? undefined)
+                    : undefined)
+                }
                 disabled={pending}
                 onChange={(value) => {
                   setAnswers((old) => ({ ...old, [q.id]: value }));
@@ -210,7 +224,13 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => goTo(survey.questions.findIndex((q) => q.section === section))}
+                    onClick={() =>
+                      goTo(
+                        survey.questions.findIndex(
+                          (q) => q.section === section,
+                        ),
+                      )
+                    }
                     className="text-sm font-semibold text-brand underline"
                   >
                     Edit answers
@@ -251,20 +271,30 @@ export function SurveyRunner({ survey }: { survey: Survey }) {
           authorized PollPoint admins. Unsubmitted answers stay in this page and
           aren’t saved.
         </p>
-        <div className="mt-6 flex flex-wrap justify-between gap-3">
+        <div
+          className="action-dock"
+          role="region"
+          aria-label="Question navigation"
+        >
           {step > 0 ? (
             <button
               disabled={pending}
               type="button"
-              className="rounded-xl border border-stone-300 px-5 py-3 text-sm font-semibold"
+              className="secondary-button"
               onClick={() => goTo(step - 1)}
             >
               Back
             </button>
           ) : (
-            <span />
+            <span className="text-xs font-semibold text-muted">
+              {blocked ? "Answer to continue" : "Ready to continue"}
+            </span>
           )}
-          <button type="submit" disabled={pending || blocked} className="primary-button">
+          <button
+            type="submit"
+            disabled={pending || blocked}
+            className="primary-button"
+          >
             {pending ? (
               <>
                 <LoaderCircle size={18} className="animate-spin" />

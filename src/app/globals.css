@@ -24,6 +24,15 @@ h2,
 h3 {
   text-wrap: balance;
 }
+html {
+  scroll-padding-top: 140px;
+  scroll-padding-bottom: 150px;
+}
+@media (min-width: 1024px) {
+  html {
+    scroll-padding-top: 100px;
+  }
+}
 button,
 input,
 a {
@@ -61,10 +70,26 @@ summary {
   @apply mt-2 w-full rounded-xl border border-stone-300 bg-white px-4 py-3.5 text-base text-ink shadow-xs transition placeholder:text-stone-500 focus:border-brand focus:outline-brand;
 }
 .primary-button {
-  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-3 font-bold text-white shadow-sm transition hover:bg-[#153e2e] disabled:opacity-60;
+  @apply inline-flex min-h-13 items-center justify-center gap-2 rounded-xl border-2 border-brand bg-brand px-6 py-3 text-base font-extrabold text-white shadow-md transition hover:border-[#153e2e] hover:bg-[#153e2e] disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-500 disabled:shadow-none;
 }
 .secondary-button {
-  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-brand/20 bg-white px-5 py-3 font-bold text-brand transition hover:bg-lime/30;
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand transition hover:border-brand hover:bg-paper disabled:text-stone-400;
+}
+.text-button {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-brand underline decoration-brand/30 underline-offset-4 hover:bg-paper;
+}
+.page-header {
+  @apply mb-7 flex flex-col gap-5 border-b border-stone-200 pb-6 sm:flex-row sm:items-center sm:justify-between;
+}
+.action-dock {
+  @apply sticky bottom-3 z-30 mt-7 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-300 bg-white p-4;
+  box-shadow:
+    0 -4px 24px #192b2510,
+    0 6px 16px #192b2510;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.action-dock .primary-button {
+  @apply w-full sm:w-auto sm:min-w-48;
 }
 .eyebrow {
   @apply text-xs font-extrabold uppercase tracking-[0.17em];
