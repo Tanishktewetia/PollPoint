@@ -79,7 +79,7 @@ export function ImportForm() {
             name="file"
             type="file"
             accept=".docx,.pdf,.txt"
-            className="mt-3 block w-full text-sm"
+            className="file-picker mt-3 block w-full rounded-xl border border-dashed border-brand/30 bg-paper p-3 text-sm"
           />
         </label>
         <label className="block text-sm font-semibold">

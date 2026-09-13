@@ -1,3 +1,4 @@
+import { auditScreen } from "../integration/visual-qa.mjs";
 import { test, expect } from "@playwright/test";
 
 test("signed-out users are redirected from protected user and admin pages", async ({
@@ -66,4 +67,22 @@ test("document import rejects foreign origins and anonymous requests before pars
     data: "not a document",
   });
   expect(anonymous.status()).toBe(401);
+});
+
+test("auth screens pass accessibility, keyboard and reduced-motion checks", async ({
+  page,
+}) => {
+  for (const route of ["login", "signup"]) {
+    await page.goto(`/${route}`);
+    await auditScreen(page, route);
+    await page.getByLabel("Email address").focus();
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("Password", { exact: true })).toBeFocused();
+  }
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(
+    await page
+      .getByRole("button", { name: "Create account" })
+      .evaluate((e) => getComputedStyle(e).transitionDuration),
+  ).toBe("0s");
 });

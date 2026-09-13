@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
+import { auditScreen } from "./visual-qa.mjs";
 import { docx, pdf } from "./document-fixtures.mjs";
 import { mkdir } from "node:fs/promises";
 import { chromium, expect } from "@playwright/test";
@@ -211,10 +212,12 @@ try {
   await expect(
     page.getByRole("heading", { name: "Everyday life, your way" }),
   ).toBeVisible();
+  await auditScreen(page, "dashboard");
   await page.getByRole("link", { name: "Take survey" }).click();
   await expect(
     page.getByRole("heading", { name: "First, a little about you." }),
   ).toBeVisible();
+  await auditScreen(page, "survey-question");
   const next = page.getByRole("button", { name: "Next", exact: true });
   await expect(next).toBeDisabled();
   await page.getByRole("spinbutton").press("Enter");
@@ -315,6 +318,7 @@ try {
     `${origin}/surveys/${participant.assignmentId}/complete`,
   );
   await expect(page.getByText("+100", { exact: true })).toBeVisible();
+  await auditScreen(page, "receipt");
   await page.screenshot({
     path: "test-results/phase-2/receipt-mobile.png",
     fullPage: true,
@@ -382,6 +386,7 @@ try {
     path: "test-results/phase-2/history-mobile.png",
     fullPage: true,
   });
+  await auditScreen(page, "history");
   await cluster.db.query(
     "insert into private.admin_memberships(user_id) values ($1)",
     [user.id],
@@ -415,7 +420,11 @@ try {
     page.getByRole("cell", { name: "other@example.invalid" }),
   ).toBeVisible();
   await expect(page.getByRole("cell", { name: user.email })).toHaveCount(0);
+  await auditScreen(page, "roster");
+  await page.goto(`${origin}/admin`);
+  await auditScreen(page, "admin-surveys");
   await page.goto(`${origin}/admin/surveys/new`);
+  await auditScreen(page, "builder");
   await page
     .getByLabel("Survey title", { exact: true })
     .fill("Manual browser survey");
@@ -447,6 +456,7 @@ try {
   await expect(
     page.getByRole("status").filter({ hasText: "1 newly assigned" }),
   ).toBeVisible();
+  await auditScreen(page, "push-receipt");
   await page.goto(manualUrl);
   await expect(page.getByLabel("Survey title", { exact: true })).toBeDisabled();
   await page.getByRole("link", { name: "View responses" }).click();
@@ -456,6 +466,7 @@ try {
   );
   await page.locator("summary").first().click();
   await expect(page.getByText(/Attention check failed/)).toBeVisible();
+  await auditScreen(page, "response-review");
   for (const [name, mimeType, buffer] of [
     [
       "company.txt",
@@ -470,6 +481,7 @@ try {
     ["company.pdf", "application/pdf", pdf()],
   ]) {
     await page.goto(`${origin}/admin/surveys/import`);
+    if (name === "company.txt") await auditScreen(page, "document-import");
     await page
       .getByLabel("Requirement document")
       .setInputFiles({ name, mimeType, buffer });

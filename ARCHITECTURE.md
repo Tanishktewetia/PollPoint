@@ -622,8 +622,11 @@ archived surveys. Submission revalidates history. No points redemption is added.
   but its generation endpoint rejected new access and recommended 3.6 Flash.
 - The Node import handler sets `maxDuration = 120`, with 15 seconds for upload,
   15 seconds for extraction in a memory-limited worker, and a 60-second Gemini timeout.
-  No automatic provider retry; the UI offers retry of the same operation. Confirm the
-  deployed Vercel plan honors the 120-second route budget in Phase 5 before launch.
+  No automatic provider retry; the UI offers retry of the same operation. Verified
+  in Phase 5: Hobby with Fluid Compute supports a 300-second maximum, so the 120-second
+  route budget is supported. The local build manifest records 120 seconds; deployed
+  function configuration and import smoke testing remain pending the production fix.
+  See [Vercel duration documentation](https://vercel.com/docs/functions/configuring-functions/duration).
   Worker code and parser dependencies are explicitly included in output file tracing.
 - Two concurrent generation leases globally; ten attempts per admin per hour. Leases
   expire after 150 seconds. Failed/expired attempts can retry by re-uploading the same

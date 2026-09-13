@@ -20,19 +20,32 @@ export default async function UsersPage({
       </p>
       <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead>
+          <caption className="sr-only">
+            Participant names, email addresses and earned points
+          </caption>
+          <thead className="bg-lime/30">
             <tr className="border-b border-stone-200">
-              <th className="p-5">Display name</th>
-              <th className="p-5">Email</th>
-              <th className="p-5 text-right">Total points earned</th>
+              <th scope="col" className="px-3 py-4 sm:p-5">
+                Display name
+              </th>
+              <th scope="col" className="px-3 py-4 sm:p-5">
+                Email
+              </th>
+              <th scope="col" className="px-3 py-4 text-right sm:p-5">
+                Total points earned
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-stone-100">
-                <td className="p-5">{r.display_name || "Not provided"}</td>
-                <td className="break-all p-5">{r.email || "Not available"}</td>
-                <td className="p-5 text-right tabular-nums">
+                <td className="px-3 py-4 sm:p-5">
+                  {r.display_name || "Not provided"}
+                </td>
+                <td className="max-w-44 break-words px-3 py-4 sm:max-w-none sm:p-5">
+                  {r.email || "Not available"}
+                </td>
+                <td className="px-3 py-4 text-right tabular-nums sm:p-5">
                   {formatPoints(r.total_points)}
                 </td>
               </tr>

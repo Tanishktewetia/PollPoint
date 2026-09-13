@@ -34,10 +34,10 @@ export default async function AdminPage({
         <Link className="primary-button" href="/admin/surveys/new">
           Create survey
         </Link>
-        <Link className="primary-button" href="/admin/surveys/import">
+        <Link className="secondary-button" href="/admin/surveys/import">
           Draft from document
         </Link>
-        <Link className="primary-button" href="/admin/users">
+        <Link className="secondary-button" href="/admin/users">
           User roster
         </Link>
       </div>
@@ -46,7 +46,7 @@ export default async function AdminPage({
           <Link
             key={s.id}
             href={`/admin/surveys/${s.id}`}
-            className="rounded-2xl border border-stone-200 bg-white p-6"
+            className="survey-card rounded-2xl border border-stone-200 bg-white p-6 transition hover:border-brand/40"
           >
             <p className="mb-3 text-xs font-semibold uppercase text-brand">
               {s.status.replaceAll("_", " ")} ·{" "}

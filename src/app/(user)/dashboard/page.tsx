@@ -32,7 +32,7 @@ export default async function DashboardPage({
           This account does not have admin access.
         </p>
       )}
-      <div className="rounded-3xl bg-brand px-7 py-9 text-white sm:px-10">
+      <div className="hero-panel rounded-3xl bg-brand px-7 py-9 text-white sm:px-10">
         <p className="eyebrow mb-4 text-lime">
           A little perspective goes a long way
         </p>
@@ -57,7 +57,7 @@ export default async function DashboardPage({
           {cards.map((card) => (
             <article
               key={card.id}
-              className="flex flex-col rounded-2xl border border-stone-200 bg-white p-6"
+              className="survey-card flex flex-col rounded-2xl border border-stone-200 bg-white p-6"
             >
               <div className="mb-5 flex items-center justify-between">
                 <span className="flex size-11 items-center justify-center rounded-xl bg-brand/5 text-brand">
