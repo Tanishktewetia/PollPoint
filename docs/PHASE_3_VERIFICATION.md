@@ -20,3 +20,9 @@ Reward-producing tests use isolated databases; hosted smoke tests create no awar
 
 Migration: `20260913000600_participant_history.sql`.
 Phase 4 (builder, targeting, responses, roster, Gemini imports) has not started.
+
+Deployment: `66bcff9` pushed to main; Supabase migration and GitHub CI checks passed.
+Hosted `db:check` confirmed anonymous history denial. The real Auth smoke test passed
+signup/confirmation, login/logout, route/RLS isolation, empty history and zero balance.
+Its temporary identity was removed; no hosted responses or rewards were created.
+The smoke assertion now waits for the rendered admin-only notice after navigation.

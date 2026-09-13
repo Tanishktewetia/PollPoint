@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { chromium } from "@playwright/test";
+import { chromium, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { required } from "./env.mjs";
@@ -41,7 +41,7 @@ try {
 
   await page.goto(`${origin}/admin`);
   await page.waitForURL(`${origin}/dashboard?notice=admin-only`);
-  assert.ok((await page.getByRole("status").innerText()).includes("does not have admin access"));
+  await expect(page.getByRole("status").filter({ hasText: "does not have admin access" })).toBeVisible();
   console.log("Hosted non-admin route rejection passed.");
 
   await page.getByRole("button", { name: "Sign out" }).click();
